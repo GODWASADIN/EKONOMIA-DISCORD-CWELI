@@ -53,6 +53,7 @@ BUSINESSES = {
     "kokaina":       {"price": 300000, "income": 1000, "rep_effect": -5, "type": "illegal"},
     "kasyno":        {"price": 750000, "income": 2000, "rep_effect": -5, "type": "illegal"},
     "import/export": {"price": 330000, "income": 1000, "rep_effect": -5, "type": "nitro"},
+    }
     
 
 intents = discord.Intents.default()
