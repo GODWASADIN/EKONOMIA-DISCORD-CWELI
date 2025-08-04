@@ -50,6 +50,23 @@ ITEMS = {
 }
 
 
+LOTTERY_FILE = "lottery_data.json"
+
+def load_lottery():
+    try:
+        with open(LOTTERY_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"pot": 0, "players": []}
+
+def save_lottery(data):
+    with open(LOTTERY_FILE, "w") as f:
+        json.dump(data, f)
+
+def reset_lottery():
+    save_lottery({"pot": 0, "players": []})
+
+ 
 # -----------------------------
 # 💼 Biznesy – konfiguracja
 # -----------------------------
@@ -720,6 +737,55 @@ async def lottery(ctx):
     save_lottery(lottery_data)
 
     await ctx.send(f"🎟️ {ctx.author.mention} kupił bilet na loterię! Aktualna pula: 💰 {lottery_data['pot']}")
+
+
+@bot.command()
+async def lottery(ctx):
+    user_id = str(ctx.author.id)
+    user = get_user(user_id)
+
+    if user["cash"] < 100:
+        return await ctx.send("❌ Potrzebujesz przynajmniej 💸 100, aby kupić bilet!")
+
+    lottery_data = load_lottery()
+
+    if user_id in lottery_data["players"]:
+        return await ctx.send("🎫 Masz już bilet na dzisiejsze losowanie!")
+
+    user["cash"] -= 100
+    lottery_data["pot"] += 100
+    lottery_data["players"].append(user_id)
+
+    save_user(user_id, user)
+    save_lottery(lottery_data)
+
+    await ctx.send(f"🎟️ {ctx.author.mention} kupił bilet na loterię! Aktualna pula: 💰 {lottery_data['pot']}")
+
+
+@tasks.loop(minutes=1)
+async def check_lottery():
+    now = datetime.utcnow()
+    if now.hour == 12 and now.minute == 0:
+        data = load_lottery()
+        if not data["players"]:
+            return  # brak graczy
+
+        winner_id = random.choice(data["players"])
+        winner = get_user(winner_id)
+        winner["cash"] += data["pot"]
+        save_user(winner_id, winner)
+
+        channel = discord.utils.get(bot.get_all_channels(), name="ekonomia")  # <- zmień jeśli masz inny kanał
+        if channel:
+            await channel.send(f"🎉 Losowanie zakończone! <@{winner_id}> wygrał pulę 💰 {data['pot']}!")
+
+        reset_lottery()
+
+@bot.event
+async def on_ready():
+    check_lottery.start()
+    print(f"{bot.user} gotowy.")
+
 
 
 bot.run(TOKEN)
