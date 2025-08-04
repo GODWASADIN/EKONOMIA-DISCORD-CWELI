@@ -120,6 +120,33 @@ def get_user_data(user_id):
         }
     return data[uid]
 
+
+def get_user(user_id):
+    with open("users.json", "r") as f:
+        data = json.load(f)
+
+    uid = str(user_id)
+    if uid not in data:
+        data[uid] = {
+            "wallet": 0,
+            "bank": 0,
+            "reputation": 0,
+            "btc": 0.0,
+            "last_work": "2000-01-01T00:00:00",
+            "last_crime": "2000-01-01T00:00:00",
+            "last_slut": "2000-01-01T00:00:00",
+            "last_rob": "2000-01-01T00:00:00",
+            "jail_until": "2000-01-01T00:00:00",
+            "businesses": {},
+            "crypto": {},
+            "stats": {}
+        }
+        with open("users.json", "w") as f:
+            json.dump(data, f, indent=4)
+
+    return data[uid]
+
+ 
 @bot.event
 async def on_ready():
     print(f"Zalogowano jako {bot.user}")
