@@ -137,15 +137,6 @@ async def check_lottery():
 bot.run("TU_WKLEJ_TOKEN")
 
 
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        remaining = round(error.retry_after, 1)
-        await ctx.send(f"🕒 Musisz odczekać {remaining}s przed ponownym użyciem tej komendy.")
-    else:
-        raise error
-
-
 @bot.command()
 async def reputation(ctx):
     user = get_user(str(ctx.author.id))
