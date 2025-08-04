@@ -259,56 +259,61 @@ async def withdraw(ctx, amount):
 
 
 
-
 @bot.command()
-async def buy(ctx, *, business_name):
+async def buy(ctx, *, name):
     user_id = str(ctx.author.id)
     user = get_user(user_id)
-    name = business_name.lower()
+    name = name.lower()
 
-    if name not in BUSINESSES:
-        return await ctx.send("❌ Nie ma takiego biznesu lub przedmiotu.")
+    if name not in SHOP_ITEMS and name not in BUSINESSES:
+        return await ctx.send("❌ Ten przedmiot lub biznes nie istnieje.")
 
-    item = BUSINESSES[name]
-    price = item["price"]
+    # PRZEDMIOT
+    if name in SHOP_ITEMS:
+        item = SHOP_ITEMS[name]
+        price = item["price"]
 
-    # Kara za reputację
-    if user["reputation"] <= -50:
-        price = int(price * 1.1)  # +10%
+        if user["cash"] < price:
+            return await ctx.send(f"❌ Potrzebujesz 💸 {price} do zakupu {name.capitalize()}.")
 
-    if user["wallet"] < price:
-        return await ctx.send(f"❌ Nie masz 💸 {price}, by kupić {name.title()}.")
+        user["cash"] -= price
+        user["items"][name] = user["items"].get(name, 0) + 1
+        save_user(user_id, user)
 
-    # Nitro check (jeśli chcesz dodać potem)
-    if item["type"] == "nitro":
-        # Możesz tu dodać warunek: ctx.author.premium_since is None
-        pass  # na razie każdy może kupić
+        return await ctx.send(f"🛒 Kupiono **{name.capitalize()}** za 💸 {price}!")
 
-    # Dodaj biznes
-    user["wallet"] -= price
-    user["businesses"][name] = {
-        "level": 1,
-        "last_collected": datetime.utcnow().isoformat(),
-        "paid_until": datetime.utcnow().isoformat()
-    }
+    # BIZNES
+    elif name in BUSINESSES:
+        business = BUSINESSES[name]
+        price = business["price"]
+        rep = user.get("reputation", 0)
 
-    user["reputation"] += item["rep_effect"]
-    save_data()
+        # Bonusy/kary od reputacji
+        if rep <= -50:
+            price = int(price * 1.1)  # kara +10%
+        elif rep >= 50 and business["legal"]:
+            business["income"] = int(business["income"] * 1.1)  # bonus +10%
 
-    embed = discord.Embed(
-        title="🛍️ Zakup",
-        description=f"Kupiłeś **{name.title()}** za 💸 {price}.",
-        color=discord.Color.green()
-    )
-    embed.add_field(name="Dochód/h", value=f"💸 {item['income']}", inline=True)
-    embed.add_field(name="Reputacja", value=f"{item['rep_effect']} pkt", inline=True)
-    embed.set_footer(text=f"Nowa reputacja: {user['reputation']} | Gotówka: {user['wallet']}")
-    embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else discord.Embed.Empty)
+        if user["cash"] < price:
+            return await ctx.send(f"❌ Potrzebujesz 💸 {price} aby kupić **{name.capitalize()}**.")
 
-    await ctx.send(embed=embed)
+        # Reputacja za zakup
+        user["cash"] -= price
+        if name not in user["businesses"]:
+            user["businesses"][name] = {
+                "level": 1,
+                "last_collected": time.time(),
+                "paid_until": time.time() + 86400,  # 1 dzień
+            }
 
+        if business["legal"]:
+            user["reputation"] = user.get("reputation", 0) + 2
+        else:
+            user["reputation"] = user.get("reputation", 0) - 5
 
-
+        save_user(user_id, user)
+        return await ctx.send(f"🏢 Kupiono biznes **{name.capitalize()}** za 💸 {price}!")
+ 
 
 @bot.command()
 async def info(ctx):
@@ -518,74 +523,6 @@ async def pay(ctx, business_name: str, days: int):
 
 
 
-@bot.command()
-async def buy(ctx, *, name):
-    user_id = str(ctx.author.id)
-    user = get_user(user_id)
-    item_name = name.title()
-
-    # — BIZNES —
-    if item_name.lower() in BUSINESSES:
-        biz = BUSINESSES[item_name.lower()]
-        is_nitro = biz.get("type") == "nitro"
-        rep = user["rep"]
-
-        # Tylko Nitro
-        if is_nitro and not any(r.name == "Nitro Booster" for r in ctx.author.roles):
-            return await ctx.send("🔒 Ten biznes jest tylko dla Nitro Boosterów.")
-
-        # Cena z karą/bonusem
-        price = biz["price"]
-        if rep <= -50:
-            price = int(price * 1.1)
-        elif rep >= 50 and biz["type"] == "legal":
-            price = int(price * 0.9)
-
-        if user["wallet"] < price:
-            return await ctx.send(f"❌ Potrzebujesz 💸 {price}, by kupić ten biznes.")
-
-        # Kup
-        user["wallet"] -= price
-        user["rep"] += biz["rep_effect"]
-        user["businesses"][item_name.lower()] = {
-            "level": 1,
-            "paid_until": datetime.utcnow().isoformat(),
-            "collected_at": datetime.utcnow().isoformat()
-        }
-
-        save_data()
-        return await ctx.send(
-            f"✅ Kupiłeś biznes **{item_name}** za 💸 {price}.\n📈 Reputacja: {user['rep']}")
-
-    # — PRZEDMIOT —
-    elif item_name in ITEMS:
-        item = ITEMS[item_name]
-        price = item["price"]
-
-        if user["wallet"] < price:
-            return await ctx.send(f"❌ Potrzebujesz 💸 {price}, by kupić ten przedmiot.")
-
-        user["wallet"] -= price
-        user["items"][item_name] = user["items"].get(item_name, 0) + 1
-
-        # Obsługa zdrapek
-        if item_name.lower().startswith("Zdrapka".lower()):
-            if "premium" in item_name.lower():
-                reward = random.randint(5000, 10000)
-            elif "gold" in item_name.lower():
-                reward = random.randint(1000, 5000)
-            else:
-                reward = random.randint(100, 1000)
-            user["wallet"] += reward
-            save_data()
-            return await ctx.send(
-                f"🎟️ Kupiłeś {item_name} za 💸 {price}!\n💰 Wygrana: {reward} 💸\nGotówka: {user['wallet']}")
-
-        save_data()
-        return await ctx.send(f"🛒 Kupiłeś przedmiot **{item_name}** za 💸 {price}!")
-
-    else:
-        return await ctx.send("❌ Nie ma takiego biznesu ani przedmiotu.")
 
 
 import random
