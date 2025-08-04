@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord.ext import tasks
-from utils import get_user
 
 intents = discord.Intents.default()
 intents.message_content = True
