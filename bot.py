@@ -100,8 +100,8 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-def user = get_user(str(ctx.author.id)):
-    uid = str(user_id)
+user = get_user(str(ctx.author.id))
+    uid = uid = str(ctx.author.id)
     if uid not in data:
         data[uid] = {
             "wallet": 0,
