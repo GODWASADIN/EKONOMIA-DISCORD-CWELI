@@ -60,11 +60,11 @@ async def work(ctx):
     bonus = 0.2 if rep >= 50 else 0
     total_earn = int(base_earn * (1 + bonus))
 
-    cursor.execute("""
-        UPDATE users
-        SET cash = cash + ?, reputation = reputation + 6, last_work = ?
-        WHERE user_id = ?
-    """, (total_earn, now, user_id))
+cursor.execute("""
+    UPDATE users
+    SET cash = cash + ?, reputation = reputation + 6, last_work = ?
+    WHERE user_id = ?
+""", (total_earn, now, user_id))
     conn.commit()
     conn.close()
 
