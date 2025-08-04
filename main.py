@@ -137,4 +137,4 @@ async def crime(ctx):
         embed.set_footer(text="Bonus: tylko 10% szansy na porażkę")
     await ctx.send(embed=embed)
 
-bot.run(DISCORD_TOKEN)
+bot.run(TOKEN)
