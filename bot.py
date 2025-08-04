@@ -8,6 +8,9 @@ import os
 import random
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from discord.ext import commands
+
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
