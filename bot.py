@@ -684,4 +684,42 @@ async def slots(ctx, amount: int):
     await play_slots()
 
 
+from datetime import datetime
+
+LOTTERY_FILE = "lottery_data.json"
+
+def load_lottery():
+    try:
+        with open(LOTTERY_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"pot": 0, "players": []}
+
+def save_lottery(data):
+    with open(LOTTERY_FILE, "w") as f:
+        json.dump(data, f)
+
+@bot.command()
+async def lottery(ctx):
+    user_id = str(ctx.author.id)
+    user = get_user(user_id)
+
+    if user["cash"] < 100:
+        return await ctx.send("❌ Potrzebujesz przynajmniej 💸 100, aby kupić bilet!")
+
+    lottery_data = load_lottery()
+
+    if user_id in lottery_data["players"]:
+        return await ctx.send("🎫 Masz już bilet na dzisiejsze losowanie!")
+
+    user["cash"] -= 100
+    lottery_data["pot"] += 100
+    lottery_data["players"].append(user_id)
+
+    save_user(user_id, user)
+    save_lottery(lottery_data)
+
+    await ctx.send(f"🎟️ {ctx.author.mention} kupił bilet na loterię! Aktualna pula: 💰 {lottery_data['pot']}")
+
+
 bot.run(TOKEN)
