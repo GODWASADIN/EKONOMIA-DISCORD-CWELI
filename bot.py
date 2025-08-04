@@ -224,7 +224,7 @@ async def crime(ctx):
         result_text = f"Niestety zagrałeś z nikishale ale zbudowałeś buty 💸 {loss_cash}."
         color = discord.Color.red()
 
-    save_data()
+    save_data(data)
 
     embed = discord.Embed(
         title="🚨 Przestępstwo",
