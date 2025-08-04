@@ -310,3 +310,11 @@ async def pay(ctx, business_name: str, days: int):
     save_user(ctx.author.id, user)
     await ctx.send(f"✅ Opłacono {business_name.capitalize()} na {days} dni. Koszt: {total_cost} 💸.")
 
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        remaining = round(error.retry_after, 1)
+        await ctx.send(f"🕒 Musisz odczekać jeszcze {remaining} sekundy przed ponownym użyciem komendy.")
+    else:
+        raise error
