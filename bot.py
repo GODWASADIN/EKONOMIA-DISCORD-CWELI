@@ -173,7 +173,7 @@ async def work(ctx):
 
     user['wallet'] += total_earn
     user['reputation'] += 6
-    save_data()
+    save_data(data)
 
     descriptions = [
         f"Zagrałeś z nikishale customa zarobiłeś 💸 {total_earn}.",
