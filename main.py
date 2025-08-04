@@ -4,15 +4,12 @@ import os
 import sqlite3
 import time
 import random
-from dotenv import load_dotenv
 
-load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN")  # Pobierany z Railway Variables
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# === Inicjalizacja bazy danych ===
 def init_db():
     conn = sqlite3.connect("economy.db")
     cursor = conn.cursor()
@@ -33,9 +30,8 @@ def init_db():
 @bot.event
 async def on_ready():
     init_db()
-    print(f"✅ Zalogowano jako {bot.user}")
+    print(f"✅ Bot zalogowany jako {bot.user}")
 
-# === !work ===
 @bot.command(name='work')
 async def work(ctx):
     user_id = ctx.author.id
@@ -80,7 +76,6 @@ async def work(ctx):
     embed.set_footer(text="Bonus 20% aktywny!" if bonus else "Brak bonusa.")
     await ctx.send(embed=embed)
 
-# === !crime ===
 @bot.command(name='crime')
 async def crime(ctx):
     user_id = ctx.author.id
