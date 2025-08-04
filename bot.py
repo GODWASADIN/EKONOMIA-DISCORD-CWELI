@@ -151,3 +151,13 @@ async def reputation(ctx):
     user = get_user(str(ctx.author.id))
     rep = user["reputation"]
     await ctx.send(f"📈 Twoja reputacja: {rep}")
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        minutes = int(error.retry_after // 60)
+        seconds = int(error.retry_after % 60)
+        await ctx.send(f"⏳ Musisz poczekać {minutes} min {seconds} sek przed ponownym użyciem tej komendy.")
+    else:
+        raise error
