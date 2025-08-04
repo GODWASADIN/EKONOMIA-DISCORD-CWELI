@@ -445,7 +445,7 @@ async def collect(ctx):
    
     
     
-    @bot.command()
+@bot.command()
 async def upgrade(ctx, *, business_name):
     user_id = str(ctx.author.id)
     user = get_user(user_id)
