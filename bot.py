@@ -72,7 +72,7 @@ async def work(ctx):
 
     embed = discord.Embed(
         title="💼 Praca wykonana!",
-        description=f"Zarobiłeś {earned} 💸 (bonus: {bonus} 💸)
+        description=f"Zarobiłeś {earned} 💸 (bonus: {bonus} 💸)"
 Reputacja: +6",
         color=discord.Color.green()
     )
