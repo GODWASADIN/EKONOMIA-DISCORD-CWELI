@@ -211,20 +211,6 @@ async def slut(ctx):
         color = discord.Color.red()
 
 
-@bot.command()
-async def balance(ctx):
-    user_id = str(ctx.author.id)
-    user = get_user(user_id)
-
-    embed = discord.Embed(
-        title="💳 Stan konta",
-        description=f"Gotówka: 💸 {user['wallet']}\nBank: 🏦 {user['bank']}\nReputacja: {user['reputation']}",
-        color=discord.Color.gold()
-    )
-    embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else discord.Embed.Empty)
-
-    await ctx.send(embed=embed)
-
 
 @bot.command()
 async def deposit(ctx, amount):
