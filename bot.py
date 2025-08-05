@@ -660,5 +660,46 @@ async def collect(ctx):
 
     await ctx.send(embed=embed)
 
+import time
+
+@bot.command()
+async def mojebiznesy(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id, None)
+
+    if not user or not user.get("businesses"):
+        return await ctx.send("❌ Nie posiadasz żadnych biznesów.")
+
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except:
+        return await ctx.send("❌ Nie udało się wczytać danych biznesów.")
+
+    lines = []
+    now = int(time.time())
+
+    for name, count in user['businesses'].items():
+        base_income = businesses.get(name.lower(), {}).get('income', 0)
+        level = user.get('business_levels', {}).get(name, 1)
+        income = user.get('custom_income', {}).get(name, base_income)
+        paid_until = user.get('paid_until', {}).get(name, 0)
+
+        paid_status = "✅ do " + time.strftime("%Y-%m-%d %H:%M", time.localtime(paid_until)) if paid_until > now else "❌ nieopłacony"
+
+        lines.append(
+            f"**{name.title()}** ×{count} | 💼 Poziom: {level} | 💸 {income}$/h | {paid_status}"
+        )
+
+    embed = discord.Embed(
+        title="📊 Twoje Biznesy",
+        description="\n".join(lines),
+        color=discord.Color.gold()
+    )
+    await ctx.send(embed=embed)
 
 bot.run(os.getenv('DISCORD_TOKEN'))
