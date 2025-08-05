@@ -71,44 +71,46 @@ async def crime(ctx):
 
     user_id = str(ctx.author.id)
     current_time = time.time()
-    cooldown_crime = 3600  # 1 godzina cooldownu
+    cooldown = 3600  # 1 godzina cooldownu
 
-    if user_id in cooldowns and current_time - cooldowns[user_id] < cooldown_crime:
-        remaining = int((cooldown_crime - (current_time - cooldowns[user_id])) / 60)
+    # sprawdzenie cooldownu
+    if user_id in cooldowns and current_time - cooldowns[user_id] < cooldown:
+        remaining = int((cooldown - (current_time - cooldowns[user_id])) / 60)
         return await ctx.send(f"⏳ Musisz poczekać jeszcze {remaining} min, by ponownie próbować przestępstwa!")
 
     user = get_user_data(user_id)
-    
-    # Sprawdzenie bonusu reputacji
-    fail_chance = 0.2
+
+    chance = random.randint(1, 100)
+
+    # Ustawienie szans na sukces/porażkę
+    success_chance = 75
+    fail_chance = 20
+
+    # Jeśli reputacja ≤ 21, bonus – porażka spada do 10%
     if user['reputation'] <= 21:
-        fail_chance = 0.1
+        fail_chance = 10
 
-    update_reputation(user_id, -5)  # -5 reputacji za próbę przestępstwa
-
-    roll = random.random()
-
-    if roll > fail_chance:
+    # Wynik
+    if chance <= success_chance:
         earnings = random.randint(50, 300)
+        result_msg = f"🕶️ Udało się! Zarobiłeś **{earnings}$**!"
         user['cash'] += earnings
-        save_data(load_data())
-        result_msg = f"✅ Udało się! Zarobiłeś **{earnings}$**!"
-        color = discord.Color.green()
+    elif chance <= success_chance + fail_chance:
+        penalty = random.randint(200, 1000)
+        penalty = min(penalty, user['cash'])  # nie może być na minusie
+        user['cash'] -= penalty
+        result_msg = f"🚔 Zostałeś złapany! Tracisz **{penalty}$**!"
     else:
-        loss = random.randint(200, 1000)
-        user['cash'] -= loss
-        if user['cash'] < 0:
-            user['cash'] = 0
-        save_data(load_data())
-        result_msg = f"🚨 Wpadłeś! Straciłeś **{loss}$**!"
-        color = discord.Color.red()
+        result_msg = "😐 Nic się nie wydarzyło... nie zarobiłeś ani nie straciłeś."
 
-    cooldowns[user_id] = current_time
+    update_reputation(user_id, -5)  # zawsze -5 rep za próbę
+    cooldowns[user_id] = current_time  # ustawienie cooldownu
+    save_data(load_data())  # zapis danych
 
     embed = discord.Embed(
-        title="🕵️ Próba przestępstwa!",
-        description=f"{result_msg}\nReputacja: **-5 pkt**.",
-        color=color
+        title="🔪 Próba przestępstwa",
+        description=f"{result_msg}\nTwoja reputacja spadła o **-5 pkt**!",
+        color=discord.Color.red()
     )
     await ctx.send(embed=embed)
 
