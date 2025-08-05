@@ -445,6 +445,8 @@ async def upgrade(ctx, biznes: str):
         return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
 
     biznes = biznes.lower()
+
+    # Wczytaj biznesy
     try:
         with open("businesses.json", "r", encoding="utf-8") as f:
             businesses = json.load(f)
@@ -454,6 +456,7 @@ async def upgrade(ctx, biznes: str):
     if biznes not in businesses:
         return await ctx.send("❌ Nie ma takiego biznesu.")
 
+    # Wczytaj dane użytkownika
     data = load_data()
     user_id = str(ctx.author.id)
     user = data.setdefault(user_id, {
@@ -464,15 +467,19 @@ async def upgrade(ctx, biznes: str):
         'business_levels': {},
         'custom_income': {}
     })
-
     user.setdefault('businesses', {})
     user.setdefault('business_levels', {})
     user.setdefault('custom_income', {})
 
-    if user['businesses'].get(biznes, 0) <= 0:
+    # 🔁 Dopasowanie nazwy biznesu niezależnie od wielkości liter
+    user_biznesy_lower = {k.lower(): v for k, v in user['businesses'].items()}
+    if user_biznesy_lower.get(biznes, 0) <= 0:
         return await ctx.send("❌ Nie posiadasz tego biznesu.")
 
-    current_level = user['business_levels'].get(biznes, 1)
+    # Oryginalna nazwa z danych użytkownika (np. "Sklep" zamiast "sklep")
+    real_name = next((k for k in user['businesses'].keys() if k.lower() == biznes), biznes)
+
+    current_level = user['business_levels'].get(real_name, 1)
     if current_level >= 5:
         return await ctx.send("⚠️ Ten biznes jest już na maksymalnym poziomie (5).")
 
@@ -485,18 +492,16 @@ async def upgrade(ctx, biznes: str):
     # Odejmij kasę
     user['cash'] -= upgrade_cost
 
-    # Zwiększ poziom
-    user['business_levels'][biznes] = current_level + 1
-
-    # Zwiększ zarobki o +20%
-    current_income = user['custom_income'].get(biznes, businesses[biznes]['income'])
+    # Zwiększ poziom i zarobek
+    user['business_levels'][real_name] = current_level + 1
+    current_income = user['custom_income'].get(real_name, businesses[biznes]['income'])
     new_income = int(current_income * 1.2)
-    user['custom_income'][biznes] = new_income
+    user['custom_income'][real_name] = new_income
 
     save_data(data)
 
     await ctx.send(
-        f"⬆️ Ulepszono **{biznes.title()}** do poziomu **{current_level + 1}**!\n"
+        f"⬆️ Ulepszono **{real_name.title()}** do poziomu **{current_level + 1}**!\n"
         f"💰 Dochód zwiększony do **{new_income}$/h**\n"
         f"💸 Koszt ulepszenia: {upgrade_cost}$"
     )
