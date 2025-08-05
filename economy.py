@@ -1,0 +1,1 @@
+# Logika ekonomii (zarabianie, wpłaty, wypłaty)
