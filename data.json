@@ -1,8 +1,13 @@
 {
-  "business_levels": {},
-  "custom_income": {}
-  "last_collect": 0,
-  "paid_until": {},
-  "custom_income": {},
-  "business_levels": {}
+  "123456789012345678": {
+    "cash": 0,
+    "bank": 0,
+    "reputation": 0,
+    "businesses": {},
+    "business_levels": {},
+    "custom_income": {},
+    "paid_until": {},
+    "last_collect": 0,
+    "items": {}
+  }
 }
