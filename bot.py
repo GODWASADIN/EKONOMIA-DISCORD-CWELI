@@ -837,5 +837,121 @@ async def blackjack(ctx, bet: int):
 
     save_data(data)
     await ctx.send(result)
+
+@bot.command()
+async def slots(ctx, bet: int):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user or user['cash'] < bet or bet <= 0:
+        return await ctx.send("❌ Nie masz wystarczającej gotówki!")
+
+    symbols = ["🍒", "🍋", "🔔", "⭐", "🍇", "💎"]
+    result = [random.choice(symbols) for _ in range(3)]
+
+    await ctx.send(f"🎰 | {' | '.join(result)} |")
+
+    if result.count(result[0]) == 3:
+        win = bet * 5
+        user['cash'] += win - bet
+        msg = f"🎉 3 takie same symbole! Wygrałeś {win}$!"
+    elif any(result.count(s) == 2 for s in result):
+        win = bet * 2
+        user['cash'] += win - bet
+        msg = f"🎊 2 takie same symbole! Wygrałeś {win}$!"
+    else:
+        user['cash'] -= bet
+        msg = "💸 Niestety, przegrywasz."
+
+    save_data(data)
+    await ctx.send(msg)
+
+@bot.command()
+async def coinflip(ctx, bet: int, wybor: str):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user or bet <= 0 or user['cash'] < bet:
+        return await ctx.send("❌ Nie masz wystarczającej gotówki!")
+
+    wybor = wybor.lower()
+    if wybor not in ["orzeł", "reszka"]:
+        return await ctx.send("❌ Wybierz: `orzeł` lub `reszka`.")
+
+    wynik = random.choice(["orzeł", "reszka"])
+    await ctx.send(f"🪙 Rzucam monetą... Wypadło: **{wynik.upper()}**!")
+
+    if wybor == wynik:
+        user['cash'] += bet  # zysk netto to +1x stawka
+        await ctx.send(f"✅ Wygrałeś {bet * 2}$!")
+    else:
+        user['cash'] -= bet
+        await ctx.send("❌ Przegrałeś!")
+
+    save_data(data)
+
+
+@bot.command()
+async def duel(ctx, przeciwnik: discord.Member, stawka: int):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    if przeciwnik == ctx.author:
+        return await ctx.send("❌ Nie możesz wyzwać samego siebie!")
+
+    if stawka <= 0:
+        return await ctx.send("❌ Stawka musi być większa niż 0!")
+
+    data = load_data()
+    user1 = data.get(str(ctx.author.id))
+    user2 = data.get(str(przeciwnik.id))
+
+    if not user1 or not user2:
+        return await ctx.send("❌ Jeden z graczy nie ma danych w systemie.")
+
+    if user1['cash'] < stawka or user2['cash'] < stawka:
+        return await ctx.send("❌ Obaj gracze muszą mieć wystarczającą gotówkę!")
+
+    # Zapytanie o akceptację
+    zaproszenie = await ctx.send(
+        f"⚔️ {przeciwnik.mention}, zostałeś wyzwany do pojedynku o {stawka}$!\n"
+        f"Kliknij ✅ aby zaakceptować (30 sekund)."
+    )
+    await zaproszenie.add_reaction("✅")
+
+    def check(reaction, user_check):
+        return (
+            user_check == przeciwnik and
+            str(reaction.emoji) == "✅" and
+            reaction.message.id == zaproszenie.id
+        )
+
+    try:
+        await bot.wait_for("reaction_add", timeout=30.0, check=check)
+    except:
+        return await ctx.send("⌛ Pojedynek nie został zaakceptowany.")
+
+    # Losowanie zwycięzcy
+    winner, loser = (ctx.author, przeciwnik) if random.choice([True, False]) else (przeciwnik, ctx.author)
+
+    # Przetwarzanie kasy
+    user1['cash'] -= stawka
+    user2['cash'] -= stawka
+    data[str(winner.id)]['cash'] += stawka * 2
+
+    save_data(data)
+
+    await ctx.send(
+        f"🏆 {winner.mention} wygrał pojedynek i zgarnia **{stawka * 2}$**!\n"
+        f"💀 {loser.mention} przegrywa stawkę."
+    )
     
 bot.run(os.getenv('DISCORD_TOKEN'))
