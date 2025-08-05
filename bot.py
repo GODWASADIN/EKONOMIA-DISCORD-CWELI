@@ -6,6 +6,8 @@ import os
 import time
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
+cooldowns = {}
+
 @bot.event
 async def on_ready():
     print(f'Zalogowano jako {bot.user}')
