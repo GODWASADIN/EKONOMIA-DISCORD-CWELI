@@ -322,4 +322,32 @@ async def dodajkase(ctx, member: discord.Member, kwota: int):
 
     await ctx.send(f"✅ Dodano {kwota}$ użytkownikowi {member.mention}!")
 
+
+@bot.command()
+async def shop(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    try:
+        with open("shop.json", "r", encoding="utf-8") as f:
+            shop_data = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("❌ Nie znaleziono pliku `shop.json`.")
+
+    embed = discord.Embed(
+        title="🛒 Sklep - Przedmioty",
+        description="Dostępne przedmioty do kupienia:\n\nUżyj `!buy <nazwa>` do zakupu.",
+        color=discord.Color.orange()
+    )
+
+    for name, item in shop_data.items():
+        embed.add_field(
+            name=f"{name.title()}  – 💰 {item['price']}$",
+            value=f"{item['description']}",
+            inline=False
+        )
+
+    embed.set_footer(text="Użyj !buy <nazwa> do zakupu")
+    await ctx.send(embed=embed)
+
 bot.run(os.getenv('DISCORD_TOKEN'))
