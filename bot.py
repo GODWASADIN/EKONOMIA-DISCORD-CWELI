@@ -702,4 +702,39 @@ async def mojebiznesy(ctx):
     )
     await ctx.send(embed=embed)
 
+@bot.command()
+async def przedmioty(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id, {})
+    inventory = user.get("items", {})
+
+    if not inventory or sum(inventory.values()) == 0:
+        return await ctx.send("🎒 Twój ekwipunek jest pusty.")
+
+    # Wczytaj shop.json (opcjonalnie, dla opisów)
+    try:
+        with open("shop.json", "r", encoding="utf-8") as f:
+            shop = json.load(f)
+    except:
+        shop = {}
+
+    lines = []
+    for item, qty in inventory.items():
+        if qty <= 0:
+            continue
+        full_name = shop.get(item, {}).get("description", item)
+        lines.append(f"🔹 **{item.title()}** — ilość: `{qty}`")
+
+    embed = discord.Embed(
+        title=f"🎒 Ekwipunek gracza {ctx.author.display_name}",
+        description="\n".join(lines),
+        color=discord.Color.purple()
+    )
+
+    await ctx.send(embed=embed)
+
 bot.run(os.getenv('DISCORD_TOKEN'))
