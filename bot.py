@@ -55,7 +55,7 @@ async def work(ctx):
 
     user_id = str(ctx.author.id)
     current_time = time.time()
-    cooldown = 1800  # 30 minut cooldownu
+    cooldown = 900  # 15 minut cooldownu
 
     # sprawdzenie cooldownu
     if user_id in cooldowns and current_time - cooldowns[user_id] < cooldown:
@@ -95,7 +95,7 @@ async def crime(ctx):
 
     user_id = str(ctx.author.id)
     current_time = time.time()
-    cooldown = 3600  # 1 godzina cooldownu
+    cooldown = 1800  # 1 godzina cooldownu
 
     # cooldown tylko dla !crime
     if user_id in cooldowns['crime'] and current_time - cooldowns['crime'][user_id] < cooldown:
@@ -151,7 +151,7 @@ async def slut(ctx):
 
     user_id = str(ctx.author.id)
     current_time = time.time()
-    cooldown = 2700  # 45 minut
+    cooldown = 1500  # 45 minut
 
     if user_id in cooldowns['slut'] and current_time - cooldowns['slut'][user_id] < cooldown:
         remaining = int((cooldown - (current_time - cooldowns['slut'][user_id])) / 60)
