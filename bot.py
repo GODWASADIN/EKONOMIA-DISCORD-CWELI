@@ -217,4 +217,61 @@ async def withdraw(ctx, amount: str):
 
     await ctx.send(f"💸 Wypłacono **{amount}$** z banku!")
 
+
+import json
+
+@bot.command()
+async def buy(ctx, biznes: str):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+
+    biznes = biznes.lower()
+
+    # Wczytanie listy biznesów
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("❌ Nie znaleziono pliku businesses.json.")
+
+    if biznes not in businesses:
+        return await ctx.send("❌ Nie ma takiego biznesu.")
+
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.setdefault(user_id, {
+        'cash': 0,
+        'bank': 0,
+        'reputation': 0,
+        'businesses': {}
+    })
+
+    b = businesses[biznes]
+
+    # Dodatkowa kara 10% jeśli reputacja ≤ -50
+    price = b['price']
+    if user['reputation'] <= -50:
+        price = int(price * 1.10)
+
+    # Sprawdzenie gotówki
+    if user['cash'] < price:
+        return await ctx.send(f"❌ Nie masz wystarczająco gotówki. Potrzebujesz **{price}$**.")
+
+    # Booster-only
+    if b['type'] == "booster_only":
+        # Można dodać warunek na sprawdzanie boosta – na razie pomijamy
+        await ctx.send("⚠️ Ten biznes jest dostępny tylko dla boosterów (na razie nie sprawdzane).")
+
+    # Dodanie biznesu do konta
+    user['cash'] -= price
+    user['businesses'][biznes] = user['businesses'].get(biznes, 0) + 1
+    user['reputation'] += b['rep_on_collect']
+    user['reputation'] = max(min(user['reputation'], 100), -100)
+
+    save_data(data)
+
+    await ctx.send(
+        f"✅ Kupiłeś biznes **{biznes.title()}** za **{price}$**.\n"
+        f"📈 Reputacja zmieniona o **{b['rep_on_collect']} pkt**, aktualna: **{user['reputation']}**."
+
 bot.run(os.getenv('DISCORD_TOKEN'))
