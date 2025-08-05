@@ -959,5 +959,37 @@ async def duel(ctx, przeciwnik: discord.Member, stawka: int):
         f"🏆 {winner.mention} wygrał pojedynek i zgarnia **{stawka * 2}$**!\n"
         f"💀 {loser.mention} przegrywa stawkę."
     )
+
+@bot.command()
+async def lottery(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user or user['cash'] < 100:
+        return await ctx.send("❌ Potrzebujesz 100$, by kupić bilet!")
+
+    # Wczytaj loterię
+    try:
+        with open("lottery.json", "r", encoding="utf-8") as f:
+            lottery_data = json.load(f)
+    except:
+        lottery_data = {"pot": 0, "players": [], "last_draw": ""}
+
+    if user_id in lottery_data["players"]:
+        return await ctx.send("🎟️ Już kupiłeś bilet na dzisiejsze losowanie!")
+
+    user['cash'] -= 100
+    lottery_data["pot"] += 100
+    lottery_data["players"].append(user_id)
+
+    save_data(data)
+    with open("lottery.json", "w", encoding="utf-8") as f:
+        json.dump(lottery_data, f, indent=4)
+
+    await ctx.send("🎟️ Bilet kupiony! Powodzenia w losowaniu o 12:00!")
     
 bot.run(os.getenv('DISCORD_TOKEN'))
