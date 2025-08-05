@@ -1189,12 +1189,12 @@ async def rob(ctx, member: discord.Member):
         embed = discord.Embed(
             title="🚔 Zostałeś złapany!",
             description=(
-                f"❌ Próba okradzenia {member.mention} się **nie powiodła**.
-"
-                f"💸 Grzywna: `{fine}$`
-"
-                f"📉 Reputacja: `-15 pkt` (obecnie: {user['reputation']})
-"
+                f"❌ Próba okradzenia {member.mention} się **nie powiodła**."
+
+                f"💸 Grzywna: `{fine}$`"
+
+                f"📉 Reputacja: `-15 pkt` (obecnie: {user['reputation']})"
+
                 f"⛓️ Trafiasz do **więzienia na 15 minut!**"
             ),
             color=discord.Color.red()
