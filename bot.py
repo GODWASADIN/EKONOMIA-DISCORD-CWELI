@@ -6,6 +6,7 @@ import os
 import time
 from tasks import check_lottery
 from tasks import set_bot
+from prison_task import check_prison
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 cooldowns = {
@@ -15,6 +16,15 @@ cooldowns = {
 }
 
 
+
+
+def get_event_multiplier():
+    data = load_data()
+    event = data.get("event", {})
+    if event.get("active", False):
+        return event.get("multiplier", 1)
+    return 1
+    
 @bot.event
 async def on_ready():
     set_bot(bot)  # przekaż bota do tasks
@@ -1129,84 +1139,57 @@ async def rob(ctx, member: discord.Member):
         return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
 
     if member == ctx.author:
-        return await ctx.send("❌ Nie możesz okradać samego siebie!")
+        return await ctx.send("❌ Nie możesz okraść samego siebie!")
 
-    user_id = str(ctx.author.id)
-    target_id = str(member.id)
+    user = get_user_data(ctx.author.id)
+    target = get_user_data(member.id)
 
-    data = load_data()
-    user = data.get(user_id)
-    target = data.get(target_id)
+    if is_in_prison(user):
+        return await ctx.send("🔒 Jesteś w więzieniu i nie możesz nic robić przez 15 minut!")
 
-    if not user or not target:
-        return await ctx.send("❌ Obaj użytkownicy muszą mieć dane w systemie.")
-
-    if target["cash"] < 100:
-        return await ctx.send("❌ Ten gracz nie ma wystarczającej gotówki, by go okraść!")
-
-    now = time.time()
-    cooldown = user.get("rob_cd", 0)
-    if now < cooldown:
-        remaining = int((cooldown - now) / 60)
-        return await ctx.send(f"⏳ Musisz poczekać **{remaining} minut** przed kolejną próbą.")
-
-    # Obniżenie reputacji za próbę
-    user["reputation"] = user.get("reputation", 0) - 10
+    if not target or target.get("cash", 0) < 100:
+        return await ctx.send("❌ Ten gracz nie ma wystarczająco gotówki!")
 
     rep = user.get("reputation", 0)
     chance = 0.6 if rep > -75 else 0.4
 
     if random.random() < chance:
-        # SUKCES
-        stolen_percent = random.uniform(0.1, 0.8)
-        stolen_amount = int(target["cash"] * stolen_percent)
-        stolen_amount = max(50, min(stolen_amount, target["cash"]))
+        # Sukces
+        percent = random.uniform(0.1, 0.8)
+        stolen = int(target["cash"] * percent)
 
-        user["cash"] += stolen_amount
-        target["cash"] -= stolen_amount
-        user["rob_cd"] = now + 900  # 15 minut cooldown
+        user["cash"] += stolen
+        target["cash"] -= stolen
+        user["reputation"] = user.get("reputation", 0) - 10
 
-        save_data(data)
+        update_user_data(ctx.author.id, user)
+        update_user_data(member.id, target)
 
         embed = discord.Embed(
-            title="💸 Udana kradzież!",
-            description=f"Ukradłeś **{stolen_amount}$** od {member.mention}!"
-
-                        f"📉 Reputacja: `-10` (obecnie: {user['reputation']})",
+            title="💰 Udany rabunek!",
+            description=f"Ukradłeś **{stolen}$** od {member.mention}!",
             color=discord.Color.green()
         )
         return await ctx.send(embed=embed)
 
     else:
-        # PORAŻKA = WIĘZIENIE
-        fine = random.randint(300, 900)
-        user["cash"] = max(0, user["cash"] - fine)
-        user["reputation"] -= 5
-        user["rob_cd"] = now + 900  # 15 minut więzienia
+        # Porażka – więzienie
+        jail_role = discord.utils.get(ctx.guild.roles, name="🔒 Więzień")
+        if jail_role:
+            await ctx.author.add_roles(jail_role)
 
-        save_data(data)
+        user["reputation"] = user.get("reputation", 0) - 15
+        user["prison"] = time.time() + 900  # 15 minut
+
+        update_user_data(ctx.author.id, user)
 
         embed = discord.Embed(
-            title="🚔 Zostałeś złapany!",
-            description=(
-                f"❌ Próba okradzenia {member.mention} się **nie powiodła**."
-
-                f"💸 Grzywna: `{fine}$`"
-
-                f"📉 Reputacja: `-15 pkt` (obecnie: {user['reputation']})"
-
-                f"⛓️ Trafiasz do **więzienia na 15 minut!**"
-            ),
+            title="🚔 Aresztowanie!",
+            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**.
+Trafiasz do więzienia na **15 minut**!",
             color=discord.Color.red()
         )
-        await ctx.send(embed=embed)
-
-        # Dodaj rolę więźnia jeśli istnieje
-        prison_role = discord.utils.get(ctx.guild.roles, name="🔒 Więzień")
-        if prison_role:
-            await ctx.author.add_roles(prison_role)
-            await asyncio.sleep(900)  # 15 minut
-            await ctx.author.remove_roles(prison_role)
+        return await ctx.send(embed=embed)
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
