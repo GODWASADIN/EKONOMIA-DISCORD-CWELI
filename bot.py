@@ -14,6 +14,11 @@ cooldowns = {
 
 @bot.event
 async def on_ready():
+    check_lottery.start()
+    print(f"Bot gotowy jako {bot.user}")
+    
+@bot.event
+async def on_ready():
     print(f'Zalogowano jako {bot.user}')
 
 @bot.command()
