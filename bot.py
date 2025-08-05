@@ -350,4 +350,46 @@ async def shop(ctx):
     embed.set_footer(text="Użyj !buy <nazwa> do zakupu")
     await ctx.send(embed=embed)
 
+
+import random
+
+def use_ticket(ctx, user_id, item_key, min_reward, max_reward, display_name):
+    data = load_data()
+    user = data.get(str(user_id), None)
+    if not user:
+        return None, f"❌ Nie znaleziono danych użytkownika."
+
+    user.setdefault('items', {})
+    if user['items'].get(item_key, 0) <= 0:
+        return None, f"❌ Nie masz żadnej **{display_name}**."
+
+    # Zużycie itemu
+    user['items'][item_key] -= 1
+    reward = random.randint(min_reward, max_reward)
+    user['cash'] += reward
+    save_data(data)
+
+    embed = discord.Embed(
+        title=f"🎉 {display_name}!",
+        description=f"Wygrałeś **{reward}$** 💰",
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="Zdrap więcej, by wygrać więcej!")
+    return embed, None
+
+@bot.command()
+async def zdrapka(ctx):
+    embed, error = use_ticket(ctx, ctx.author.id, "zdrapka", 100, 1000, "Zwykła Zdrapka")
+    await ctx.send(embed=embed) if embed else await ctx.send(error)
+
+@bot.command()
+async def zdrapkag(ctx):
+    embed, error = use_ticket(ctx, ctx.author.id, "zdrapkagold", 1000, 5000, "Złota Zdrapka")
+    await ctx.send(embed=embed) if embed else await ctx.send(error)
+
+@bot.command()
+async def zdrapkap(ctx):
+    embed, error = use_ticket(ctx, ctx.author.id, "zdrapkapremium", 5000, 10000, "Premium Zdrapka")
+    await ctx.send(embed=embed) if embed else await ctx.send(error)
+
 bot.run(os.getenv('DISCORD_TOKEN'))
