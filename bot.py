@@ -273,5 +273,24 @@ async def buy(ctx, biznes: str):
     await ctx.send(
         f"✅ Kupiłeś biznes **{biznes.title()}** za **{price}$**.\n"
         f"📈 Reputacja zmieniona o **{b['rep_on_collect']} pkt**, aktualna: **{user['reputation']}**."
+    )
+
+
+
+        OWNER_ID = 987130076866949230
+
+@bot.command()
+async def dodajkase(ctx, member: discord.Member, kwota: int):
+    if ctx.author.id != OWNER_ID:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+    
+    if kwota <= 0:
+        return await ctx.send("Podaj poprawną kwotę większą niż 0.")
+    
+    user_data = get_user_data(member.id)
+    user_data['robux'] += kwota
+    update_user_data(member.id, user_data)
+    
+    await ctx.send(f"✅ Dodano {kwota} Robuxów użytkownikowi {member.mention}!")
 
 bot.run(os.getenv('DISCORD_TOKEN'))
