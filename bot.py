@@ -62,6 +62,54 @@ async def work(ctx):
         color=discord.Color.green()
     )
     await ctx.send(embed=embed)
+
+
+@bot.command()
+async def crime(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    current_time = time.time()
+    cooldown_crime = 3600  # 1 godzina cooldownu
+
+    if user_id in cooldowns and current_time - cooldowns[user_id] < cooldown_crime:
+        remaining = int((cooldown_crime - (current_time - cooldowns[user_id])) / 60)
+        return await ctx.send(f"⏳ Musisz poczekać jeszcze {remaining} min, by ponownie próbować przestępstwa!")
+
+    user = get_user_data(user_id)
     
+    # Sprawdzenie bonusu reputacji
+    fail_chance = 0.2
+    if user['reputation'] <= 21:
+        fail_chance = 0.1
+
+    update_reputation(user_id, -5)  # -5 reputacji za próbę przestępstwa
+
+    roll = random.random()
+
+    if roll > fail_chance:
+        earnings = random.randint(50, 300)
+        user['cash'] += earnings
+        save_data(load_data())
+        result_msg = f"✅ Udało się! Zarobiłeś **{earnings}$**!"
+        color = discord.Color.green()
+    else:
+        loss = random.randint(200, 1000)
+        user['cash'] -= loss
+        if user['cash'] < 0:
+            user['cash'] = 0
+        save_data(load_data())
+        result_msg = f"🚨 Wpadłeś! Straciłeś **{loss}$**!"
+        color = discord.Color.red()
+
+    cooldowns[user_id] = current_time
+
+    embed = discord.Embed(
+        title="🕵️ Próba przestępstwa!",
+        description=f"{result_msg}\nReputacja: **-5 pkt**.",
+        color=color
+    )
+    await ctx.send(embed=embed)
 
 bot.run(os.getenv('DISCORD_TOKEN'))
