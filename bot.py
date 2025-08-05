@@ -5,6 +5,7 @@ import discord
 import os
 import time
 from tasks import check_lottery
+from tasks import set_bot
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 cooldowns = {
@@ -13,10 +14,11 @@ cooldowns = {
     'slut': {}
 }
 
+
 @bot.event
 async def on_ready():
-    check_lottery.start()
-    print(f"Bot gotowy jako {bot.user}")
+    set_bot(bot)  # przekaż bota do tasks
+    print(f"✅ Zalogowano jako {bot.user}")
     
 @bot.event
 async def on_ready():
