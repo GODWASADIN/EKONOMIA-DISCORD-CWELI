@@ -276,8 +276,7 @@ async def buy(ctx, biznes: str):
     )
 
 
-
-        OWNER_ID = 987130076866949230  # ← upewnij się, że nie ma żadnego wcięcia
+OWNER_ID = 987130076866949230  # ← upewnij się, że nie ma żadnego wcięcia
 
 @bot.command()
 async def dodajkase(ctx, member: discord.Member, kwota: int):
