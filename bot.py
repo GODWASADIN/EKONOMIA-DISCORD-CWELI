@@ -9,6 +9,7 @@ bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 cooldowns = {
     'work': {},
     'crime': {}
+    "slut": {}
 }
 
 @bot.event
@@ -119,6 +120,49 @@ async def crime(ctx):
         title="🔪 Próba przestępstwa",
         description=f"{result_msg}\nTwoja reputacja spadła o **-5 pkt**!",
         color=discord.Color.red()
+    )
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def slut(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    current_time = time.time()
+    cooldown = 2700  # 45 minut
+
+    if user_id in cooldowns['slut'] and current_time - cooldowns['slut'][user_id] < cooldown:
+        remaining = int((cooldown - (current_time - cooldowns['slut'][user_id])) / 60)
+        return await ctx.send(f"⏳ Musisz poczekać jeszcze {remaining} min, by ponownie wykonać brudną robotę!")
+
+    data = load_data()
+    user = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
+
+    chance = random.randint(1, 100)
+
+    if chance <= 80:  # 80% sukcesu
+        earnings = random.randint(50, 200)
+        user['cash'] += earnings
+        result_msg = f"💋 Zarobiłeś **{earnings}$** wykonując brudną robotę."
+    else:
+        loss = random.randint(50, 100)
+        loss = min(loss, user['cash'])
+        user['cash'] -= loss
+        result_msg = f"💔 Nie udało się! Straciłeś **{loss}$**."
+
+    # -2 reputacji
+    user['reputation'] -= 2
+    user['reputation'] = max(min(user['reputation'], 100), -100)
+
+    cooldowns['slut'][user_id] = current_time
+    save_data(data)
+
+    embed = discord.Embed(
+        title="🔞 Brudna robota",
+        description=f"{result_msg}\nTwoja reputacja spadła o **-2 pkt**.",
+        color=discord.Color.purple()
     )
     await ctx.send(embed=embed)
 
