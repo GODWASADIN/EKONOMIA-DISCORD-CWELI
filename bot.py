@@ -392,4 +392,50 @@ async def zdrapkap(ctx):
     embed, error = use_ticket(ctx, ctx.author.id, "zdrapkapremium", 5000, 10000, "Premium Zdrapka")
     await ctx.send(embed=embed) if embed else await ctx.send(error)
 
+
+@bot.command()
+async def invest(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("❌ Nie znaleziono pliku `businesses.json`.")
+
+    embed = discord.Embed(
+        title="💼 Dostępne Biznesy – Inwestycje",
+        description="Kup biznes komendą `!buy <nazwa>`",
+        color=discord.Color.blue()
+    )
+
+    # Podzielone według typu
+    legal = ""
+    illegal = ""
+    booster = ""
+
+    for name, b in businesses.items():
+        line = f"**{name.title()}** – 💸 {b['price']:,}$, 💰 {b['income']}/h"
+        if b['type'] == "legal":
+            line += f", 🟢 +{b['rep_on_collect']} rep / zbieranie\n"
+            legal += line
+        elif b['type'] == "illegal":
+            line += f", 🔴 {b['rep_on_collect']} rep / zakup\n"
+            illegal += line
+        elif b['type'] == "booster_only":
+            line += f", 🟣 {b['rep_on_collect']} rep / zakup\n"
+            booster += line
+
+    if legal:
+        embed.add_field(name="🟢 Legalne Biznesy", value=legal, inline=False)
+    if illegal:
+        embed.add_field(name="🔴 Nielegalne Biznesy", value=illegal, inline=False)
+    if booster:
+        embed.add_field(name="🟣 Biznesy dla Nitro Boosterów", value=booster, inline=False)
+
+    embed.set_footer(text="Bonus: +10% dochodu przy reputacji ≥ 50 • Kara: +10% ceny przy reputacji ≤ -50")
+
+    await ctx.send(embed=embed)
+
 bot.run(os.getenv('DISCORD_TOKEN'))
