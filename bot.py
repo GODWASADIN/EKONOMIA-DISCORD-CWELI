@@ -76,41 +76,45 @@ async def crime(ctx):
     current_time = time.time()
     cooldown = 3600  # 1 godzina cooldownu
 
-    # cooldown tylko dla crime
+    # cooldown tylko dla !crime
     if user_id in cooldowns['crime'] and current_time - cooldowns['crime'][user_id] < cooldown:
         remaining = int((cooldown - (current_time - cooldowns['crime'][user_id])) / 60)
         return await ctx.send(f"⏳ Musisz poczekać jeszcze {remaining} min, by ponownie próbować przestępstwa!")
 
-    user = get_user_data(user_id)
-    chance = random.randint(1, 100)
+    # Pobranie i przygotowanie danych użytkownika
+    data = load_data()
+    user = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
 
-    # domyślne szanse
+    chance = random.randint(1, 100)
     success_chance = 75
     fail_chance = 20
 
-    # bonus za niską reputację
+    # Bonus: mniejsza szansa na porażkę przy reputacji ≤ 21
     if user['reputation'] <= 21:
         fail_chance = 10
 
-    data = load_data()
-    user_data = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
-
+    # Wynik akcji
     if chance <= success_chance:
         earnings = random.randint(50, 300)
-        user_data['cash'] += earnings
+        user['cash'] += earnings
         result_msg = f"🕶️ Udało się! Zarobiłeś **{earnings}$**!"
     elif chance <= success_chance + fail_chance:
         penalty = random.randint(200, 1000)
-        penalty = min(penalty, user_data['cash'])
-        user_data['cash'] -= penalty
+        penalty = min(penalty, user['cash'])  # nie możesz stracić więcej niż masz
+        user['cash'] -= penalty
         result_msg = f"🚔 Zostałeś złapany! Tracisz **{penalty}$**!"
     else:
         result_msg = "😐 Nic się nie wydarzyło... nie zarobiłeś ani nie straciłeś."
 
-    update_reputation(user_id, -5)
-    cooldowns['crime'][user_id] = current_time  # ⬅️ cooldown ustawiany dopiero teraz!
+    # Zmiana reputacji
+    user['reputation'] -= 5
+    user['reputation'] = max(min(user['reputation'], 100), -100)
+
+    # Zapis danych i cooldownu
+    cooldowns['crime'][user_id] = current_time
     save_data(data)
 
+    # Odpowiedź
     embed = discord.Embed(
         title="🔪 Próba przestępstwa",
         description=f"{result_msg}\nTwoja reputacja spadła o **-5 pkt**!",
