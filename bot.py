@@ -1198,7 +1198,7 @@ async def rob(ctx, member: discord.Member):
         embed = discord.Embed(
             title="💸 Udana kradzież!",
             description=f"Ukradłeś **{stolen_amount}$** od {member.mention}!"
-"
+
                         f"📉 Reputacja: `-10` (obecnie: {user['reputation']})",
             color=discord.Color.green()
         )
