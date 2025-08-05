@@ -76,39 +76,40 @@ async def crime(ctx):
     current_time = time.time()
     cooldown = 3600  # 1 godzina cooldownu
 
-    # sprawdzenie cooldownu
-    if user_id in cooldowns and current_time - cooldowns[user_id] < cooldown:
-        remaining = int((cooldown - (current_time - cooldowns[user_id])) / 60)
+    # cooldown tylko dla crime
+    if user_id in cooldowns['crime'] and current_time - cooldowns['crime'][user_id] < cooldown:
+        remaining = int((cooldown - (current_time - cooldowns['crime'][user_id])) / 60)
         return await ctx.send(f"⏳ Musisz poczekać jeszcze {remaining} min, by ponownie próbować przestępstwa!")
 
     user = get_user_data(user_id)
-
     chance = random.randint(1, 100)
 
-    # Ustawienie szans na sukces/porażkę
+    # domyślne szanse
     success_chance = 75
     fail_chance = 20
 
-    # Jeśli reputacja ≤ 21, bonus – porażka spada do 10%
+    # bonus za niską reputację
     if user['reputation'] <= 21:
         fail_chance = 10
 
-    # Wynik
+    data = load_data()
+    user_data = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
+
     if chance <= success_chance:
         earnings = random.randint(50, 300)
+        user_data['cash'] += earnings
         result_msg = f"🕶️ Udało się! Zarobiłeś **{earnings}$**!"
-        user['cash'] += earnings
     elif chance <= success_chance + fail_chance:
         penalty = random.randint(200, 1000)
-        penalty = min(penalty, user['cash'])  # nie może być na minusie
-        user['cash'] -= penalty
+        penalty = min(penalty, user_data['cash'])
+        user_data['cash'] -= penalty
         result_msg = f"🚔 Zostałeś złapany! Tracisz **{penalty}$**!"
     else:
         result_msg = "😐 Nic się nie wydarzyło... nie zarobiłeś ani nie straciłeś."
 
-    update_reputation(user_id, -5)  # zawsze -5 rep za próbę
-    cooldowns[user_id] = current_time  # ustawienie cooldownu
-    save_data(load_data())  # zapis danych
+    update_reputation(user_id, -5)
+    cooldowns['crime'][user_id] = current_time  # ⬅️ cooldown ustawiany dopiero teraz!
+    save_data(data)
 
     embed = discord.Embed(
         title="🔪 Próba przestępstwa",
