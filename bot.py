@@ -1204,7 +1204,7 @@ async def rob(ctx, member: discord.Member):
         fine = random.randint(300, 900)
         user["cash"] = max(0, user["cash"] - fine)
         user["reputation"] -= 5
-        user["rob_cd"] = now + 7200  # Więzienie
+        user["rob_cd"] = now + 900  # Więzienie
 
         save_data(data)
         return await ctx.send(
