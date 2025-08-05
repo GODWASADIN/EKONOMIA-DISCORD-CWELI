@@ -438,4 +438,67 @@ async def invest(ctx):
 
     await ctx.send(embed=embed)
 
+
+@bot.command()
+async def upgrade(ctx, biznes: str):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    biznes = biznes.lower()
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("❌ Nie znaleziono pliku businesses.json.")
+
+    if biznes not in businesses:
+        return await ctx.send("❌ Nie ma takiego biznesu.")
+
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.setdefault(user_id, {
+        'cash': 0,
+        'bank': 0,
+        'reputation': 0,
+        'businesses': {},
+        'business_levels': {},
+        'custom_income': {}
+    })
+
+    user.setdefault('businesses', {})
+    user.setdefault('business_levels', {})
+    user.setdefault('custom_income', {})
+
+    if user['businesses'].get(biznes, 0) <= 0:
+        return await ctx.send("❌ Nie posiadasz tego biznesu.")
+
+    current_level = user['business_levels'].get(biznes, 1)
+    if current_level >= 5:
+        return await ctx.send("⚠️ Ten biznes jest już na maksymalnym poziomie (5).")
+
+    base_price = businesses[biznes]['price']
+    upgrade_cost = int(base_price * 0.5)
+
+    if user['cash'] < upgrade_cost:
+        return await ctx.send(f"❌ Ulepszenie kosztuje **{upgrade_cost}$**, a Ty masz tylko **{user['cash']}$**.")
+
+    # Odejmij kasę
+    user['cash'] -= upgrade_cost
+
+    # Zwiększ poziom
+    user['business_levels'][biznes] = current_level + 1
+
+    # Zwiększ zarobki o +20%
+    current_income = user['custom_income'].get(biznes, businesses[biznes]['income'])
+    new_income = int(current_income * 1.2)
+    user['custom_income'][biznes] = new_income
+
+    save_data(data)
+
+    await ctx.send(
+        f"⬆️ Ulepszono **{biznes.title()}** do poziomu **{current_level + 1}**!\n"
+        f"💰 Dochód zwiększony do **{new_income}$/h**\n"
+        f"💸 Koszt ulepszenia: {upgrade_cost}$"
+    )
+
 bot.run(os.getenv('DISCORD_TOKEN'))
