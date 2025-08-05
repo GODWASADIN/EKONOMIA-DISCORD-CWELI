@@ -24,6 +24,18 @@ async def on_ready():
 async def on_ready():
     print(f'Zalogowano jako {bot.user}')
 
+@bot.check
+async def check_prison(ctx):
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if user:
+        rob_cd = user.get("rob_cd", 0)
+        if time.time() < rob_cd:
+            return ctx.command.name == "prison"  # pozwól tylko na !prison
+    return True
+    
 @bot.command()
 async def bal(ctx):
     if ctx.channel.name != 'ekonomia':
@@ -993,5 +1005,237 @@ async def lottery(ctx):
         json.dump(lottery_data, f, indent=4)
 
     await ctx.send("🎟️ Bilet kupiony! Powodzenia w losowaniu o 12:00!")
+
+@bot.command()
+async def rep(ctx, member: discord.Member = None):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    member = member or ctx.author
+    user_id = str(member.id)
+
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user:
+        return await ctx.send("❌ Ten użytkownik nie ma danych w systemie.")
+
+    rep = user.get("reputation", 0)
+    await ctx.send(f"⭐ Reputacja użytkownika {member.mention} wynosi: **{rep} pkt**")
+
+import datetime
+
+# DODAJ do load_data(): user.setdefault("redeem_history", {})
+# Jeśli jeszcze tego nie masz, by kontrolować dzienne użycia
+
+@bot.command()
+async def redeem(ctx, kwota: int):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    if kwota <= 0:
+        return await ctx.send("❌ Podaj poprawną kwotę (minimum 1000).")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user or user['cash'] < kwota:
+        return await ctx.send("❌ Nie masz wystarczającej gotówki.")
+
+    if kwota % 1000 != 0:
+        return await ctx.send("❌ Kwota musi być wielokrotnością **1000$**.")
+
+    # Sprawdź dzienny limit
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    redeem_history = user.setdefault("redeem_history", {})
+    used_today = redeem_history.get(today, 0)
+
+    max_points_today = 20
+    max_kwota_today = max_points_today * 1000
+    if used_today + kwota > max_kwota_today:
+        return await ctx.send(f"❌ Możesz odkupić reputację tylko do **{max_points_today} pkt** dziennie (**max {max_kwota_today}$**)")
+
+    # Oblicz ile punktów dać
+    punkty = int((kwota / 1000) * 10)
+
+    # Odejmij gotówkę, dodaj reputację
+    user['cash'] -= kwota
+    user['reputation'] += punkty
+    if user['reputation'] > 100:
+        user['reputation'] = 100  # maksymalnie 100
+
+    redeem_history[today] = used_today + kwota
+    save_data(data)
+
+    await ctx.send(f"✅ Wykupiono reputację za {kwota}$! Otrzymujesz **+{punkty} pkt**, aktualna reputacja: **{user['reputation']} pkt**.")
+
+@bot.command()
+async def btop(ctx):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+
+    data = load_data()
+
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            biz_db = json.load(f)
+    except:
+        return await ctx.send("❌ Nie udało się załadować biznesów.")
+
+    ranking = []
+
+    for user_id, user_data in data.items():
+        total_value = 0
+        businesses = user_data.get("businesses", {})
+        levels = user_data.get("business_levels", {})
+
+        for biz, qty in businesses.items():
+            base_price = biz_db.get(biz, {}).get("price", 0)
+            level = levels.get(biz, 1)
+            for _ in range(qty):
+                upgraded_price = base_price + int(base_price * 0.5 * (level - 1))  # wzrost ceny z poziomem
+                total_value += upgraded_price
+
+        if total_value > 0:
+            ranking.append((int(user_id), total_value))
+
+    if not ranking:
+        return await ctx.send("❌ Nikt nie posiada biznesów.")
+
+    ranking.sort(key=lambda x: x[1], reverse=True)
+    top = ranking[:10]
+
+    embed = discord.Embed(title="🏢 TOP 10 najbogatszych według wartości biznesów", color=discord.Color.gold())
+    for i, (uid, value) in enumerate(top, start=1):
+        member = ctx.guild.get_member(uid)
+        name = member.display_name if member else f"<@{uid}>"
+        embed.add_field(name=f"{i}. {name}", value=f"Wartość: 💸 {value:,}$", inline=False)
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def top(ctx):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+
+    data = load_data()
+
+    ranking = []
+
+    for user_id, user_data in data.items():
+        total = user_data.get("cash", 0) + user_data.get("bank", 0)
+        reputation = user_data.get("reputation", 0)
+        if total > 0:
+            ranking.append((int(user_id), total, reputation))
+
+    if not ranking:
+        return await ctx.send("❌ Brak danych do wyświetlenia.")
+
+    ranking.sort(key=lambda x: x[1], reverse=True)
+    top = ranking[:10]
+
+    embed = discord.Embed(title="💰 TOP 10 najbogatszych graczy", color=discord.Color.green())
+    for i, (uid, total_money, rep) in enumerate(top, start=1):
+        member = ctx.guild.get_member(uid)
+        name = member.display_name if member else f"<@{uid}>"
+        embed.add_field(
+            name=f"{i}. {name}",
+            value=f"💸 {total_money:,}$ • ⭐ {rep} pkt",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+import random
+import time
+
+@bot.command()
+async def rob(ctx, member: discord.Member):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
     
+    if member == ctx.author:
+        return await ctx.send("❌ Nie możesz okradać samego siebie!")
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+
+    data = load_data()
+    user = data.get(user_id)
+    target = data.get(target_id)
+
+    if not user or not target:
+        return await ctx.send("❌ Obaj użytkownicy muszą mieć dane w systemie.")
+
+    if target["cash"] < 100:
+        return await ctx.send("❌ Ten gracz nie ma wystarczającej gotówki, by go okraść!")
+
+    now = time.time()
+    cooldown = user.get("rob_cd", 0)
+    if now < cooldown:
+        remaining = int((cooldown - now) / 60)
+        return await ctx.send(f"⏳ Musisz poczekać **{remaining} minut** przed kolejną próbą.")
+
+    # Obniżenie reputacji za próbę
+    user["reputation"] = user.get("reputation", 0) - 10
+
+    rep = user.get("reputation", 0)
+    chance = 0.6 if rep > -75 else 0.4
+
+    if random.random() < chance:
+        # SUKCES
+        stolen_percent = random.uniform(0.1, 0.8)
+        stolen_amount = int(target["cash"] * stolen_percent)
+        stolen_amount = max(50, min(stolen_amount, target["cash"]))
+
+        user["cash"] += stolen_amount
+        target["cash"] -= stolen_amount
+
+        user["rob_cd"] = now + 7200  # 2 godziny
+
+        save_data(data)
+        return await ctx.send(
+            f"💰 Udało Ci się okraść {member.mention} i zdobyć **{stolen_amount}$**!\n"
+            f"⭐ Reputacja -10 (obecna: {user['reputation']})"
+        )
+    else:
+        # PORAŻKA
+        fine = random.randint(300, 900)
+        user["cash"] = max(0, user["cash"] - fine)
+        user["reputation"] -= 5
+        user["rob_cd"] = now + 7200  # Więzienie
+
+        save_data(data)
+        return await ctx.send(
+            f"🚨 Zostałeś złapany podczas próby okradzenia {member.mention}!\n"
+            f"💸 Kara: -{fine}$, ⭐ Reputacja -15 (obecna: {user['reputation']})\n"
+            f"⛓️ Trafiasz do więzienia na 2 godziny!"
+        )
+
+@bot.command()
+async def prison(ctx, member: discord.Member = None):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+
+    member = member or ctx.author
+    user_id = str(member.id)
+
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user:
+        return await ctx.send("❌ Ten gracz nie istnieje w systemie.")
+
+    rob_cd = user.get("rob_cd", 0)
+    now = time.time()
+
+    if rob_cd > now:
+        remaining = int(rob_cd - now)
+        minutes = remaining // 60
+        seconds = remaining % 60
+        await ctx.send(f"⛓️ {member.display_name} siedzi w więzieniu jeszcze przez **{minutes}m {seconds}s**.")
+    else:
+        await ctx.send(f"✅ {member.display_name} jest wolny.")
+        
 bot.run(os.getenv('DISCORD_TOKEN'))
