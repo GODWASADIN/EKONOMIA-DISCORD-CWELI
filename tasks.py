@@ -4,10 +4,19 @@ import json
 import random
 import discord
 from economy import load_data, save_data  # zakładamy, że masz te funkcje
-from bot import bot  # zakładamy, że Twój bot jest nazwany "bot"
+
+bot_instance = None  # globalna referencja na bota
+
+def set_bot(bot):
+    global bot_instance
+    bot_instance = bot
+    check_lottery.start()
 
 @tasks.loop(minutes=1)
 async def check_lottery():
+    if bot_instance is None:
+        return
+
     now = datetime.datetime.now()
     if now.hour == 12 and now.minute == 0:
         try:
@@ -24,7 +33,7 @@ async def check_lottery():
         pot = lottery_data.get("pot", 0)
 
         if not players or pot == 0:
-            return  # nic do losowania
+            return
 
         winner_id = random.choice(players)
         data = load_data()
@@ -33,7 +42,7 @@ async def check_lottery():
             data[winner_id]["cash"] += pot
             save_data(data)
 
-            channel = discord.utils.get(bot.get_all_channels(), name="ekonomia")
+            channel = discord.utils.get(bot_instance.get_all_channels(), name="ekonomia")
             if channel:
                 await channel.send(f"🏆 **Loteria!** Wylosowano zwycięzcę!\n🎉 Gratulacje <@{winner_id}> – wygrywasz **{pot}$**!")
 
