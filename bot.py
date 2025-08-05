@@ -223,7 +223,7 @@ import json
 @bot.command()
 async def buy(ctx, biznes: str):
     if ctx.channel.name != 'ekonomia':
-        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
 
     biznes = biznes.lower()
 
@@ -237,6 +237,7 @@ async def buy(ctx, biznes: str):
     if biznes not in businesses:
         return await ctx.send("❌ Nie ma takiego biznesu.")
 
+    # Wczytanie danych gracza
     data = load_data()
     user_id = str(ctx.author.id)
     user = data.setdefault(user_id, {
@@ -245,36 +246,41 @@ async def buy(ctx, biznes: str):
         'reputation': 0,
         'businesses': {}
     })
+    user.setdefault('businesses', {})
 
     b = businesses[biznes]
+    cena = b['price']
 
-    # Dodatkowa kara 10% jeśli reputacja ≤ -50
-    price = b['price']
+    # Kara reputacyjna (gorsze ceny)
     if user['reputation'] <= -50:
-        price = int(price * 1.10)
+        cena = int(cena * 1.1)
 
     # Sprawdzenie gotówki
-    if user['cash'] < price:
-        return await ctx.send(f"❌ Nie masz wystarczająco gotówki. Potrzebujesz **{price}$**.")
+    if user['cash'] < cena:
+        return await ctx.send(f"❌ Nie masz wystarczająco gotówki. Potrzebujesz **{cena}$**.")
 
-    # Booster-only
-    if b['type'] == "booster_only":
-        # Można dodać warunek na sprawdzanie boosta – na razie pomijamy
-        await ctx.send("⚠️ Ten biznes jest dostępny tylko dla boosterów (na razie nie sprawdzane).")
+    # Odejmuje gotówkę
+    user['cash'] -= cena
 
-    # Dodanie biznesu do konta
-    user['cash'] -= price
+    # Dodaje biznes (albo zwiększa jego ilość)
     user['businesses'][biznes] = user['businesses'].get(biznes, 0) + 1
-    user['reputation'] += b['rep_on_collect']
+
+    # Reputacja w zależności od typu
+    if b['type'] == "illegal" or b['type'] == "booster_only":
+        user['reputation'] -= 5
+        rep_info = "-5 reputacji"
+    else:
+        rep_info = "brak zmian"
+
+    # Ograniczenie reputacji
     user['reputation'] = max(min(user['reputation'], 100), -100)
 
     save_data(data)
 
     await ctx.send(
-        f"✅ Kupiłeś biznes **{biznes.title()}** za **{price}$**.\n"
-        f"📈 Reputacja zmieniona o **{b['rep_on_collect']} pkt**, aktualna: **{user['reputation']}**."
+        f"✅ Kupiłeś **{biznes.title()}** za **{cena}$**.\n"
+        f"📈 Reputacja: {rep_info} → teraz **{user['reputation']} pkt**."
     )
-
 
 OWNER_ID = 987130076866949230  # ← upewnij się, że nie ma żadnego wcięcia
 
