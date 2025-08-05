@@ -1,0 +1,26 @@
+{
+    "zdrapka": {
+        "price": 500,
+        "description": "Losowa wygrana: 100–1000 💰"
+    },
+    "zdrapkagold": {
+        "price": 3000,
+        "description": "Losowa wygrana: 1000–5000 💰"
+    },
+    "zdrapkapremium": {
+        "price": 7500,
+        "description": "Losowa wygrana: 5000–10000 💰"
+    },
+    "automaty": {
+        "price": 2500000,
+        "description": "Możliwość tworzenia tymczasowych kanałów głosowych"
+    },
+    "nitrobasic": {
+        "price": 10000000,
+        "description": "Prestżowy przedmiot bez dodatkowych funkcji"
+    },
+    "nitro": {
+        "price": 30000000,
+        "description": "Prestżowy przedmiot bez dodatkowych funkcji"
+    }
+}
