@@ -1186,7 +1186,7 @@ async def rob(ctx, member: discord.Member):
         embed = discord.Embed(
             title="🚔 Aresztowanie!",
             description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**."
-"Trafiasz do więzienia na **15 minut**!",
+"Trafiasz do więzienia na **15 minut**!"
             color=discord.Color.red()
         )
         return await ctx.send(embed=embed)
