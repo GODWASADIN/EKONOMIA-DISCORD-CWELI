@@ -506,4 +506,159 @@ async def upgrade(ctx, biznes: str):
         f"💸 Koszt ulepszenia: {upgrade_cost}$"
     )
 
+
+import time
+
+@bot.command()
+async def pay(ctx, biznes: str, dni: int):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    if dni <= 0:
+        return await ctx.send("❌ Liczba dni musi być większa niż 0.")
+
+    biznes = biznes.lower()
+
+    # Wczytaj dane biznesów
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("❌ Nie znaleziono pliku businesses.json.")
+
+    if biznes not in businesses:
+        return await ctx.send("❌ Nie ma takiego biznesu.")
+
+    # Dane gracza
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.setdefault(user_id, {
+        'cash': 0,
+        'businesses': {},
+        'paid_until': {}
+    })
+
+    user.setdefault('businesses', {})
+    user.setdefault('paid_until', {})
+
+    # Dopasuj nazwę biznesu (case-insensitive)
+    user_biznesy_lower = {k.lower(): v for k, v in user['businesses'].items()}
+    if user_biznesy_lower.get(biznes, 0) <= 0:
+        return await ctx.send("❌ Nie posiadasz tego biznesu.")
+
+    real_name = next((k for k in user['businesses'].keys() if k.lower() == biznes), biznes)
+
+    # Dochód x ilość x 24h
+    count = user['businesses'][real_name]
+    base_income = businesses[biznes]['income']
+    real_income = user.get('custom_income', {}).get(real_name, base_income)
+
+    daily_cost = int(real_income * count * 0.1)
+    total_cost = daily_cost * dni
+
+    if user['cash'] < total_cost:
+        return await ctx.send(f"❌ Koszt opłacenia **{real_name.title()}** na {dni} dni to **{total_cost}$**, a masz tylko **{user['cash']}$**.")
+
+    user['cash'] -= total_cost
+
+    # Aktualizacja opłaconego czasu
+    current_time = int(time.time())
+    existing = user['paid_until'].get(real_name, 0)
+    new_paid_until = max(existing, current_time) + (dni * 86400)
+    user['paid_until'][real_name] = new_paid_until
+
+    save_data(data)
+
+    dt = time.strftime("%Y-%m-%d %H:%M", time.localtime(new_paid_until))
+    await ctx.send(
+        f"✅ Opłacono **{real_name.title()}** na **{dni} dni** (do **{dt}**)!\n"
+        f"💸 Koszt: {total_cost}$ (**{daily_cost}$/dzień x {dni})"
+    )
+
+
+
+import time
+
+@bot.command()
+async def collect(ctx):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.setdefault(user_id, {
+        'cash': 0,
+        'reputation': 0,
+        'businesses': {},
+        'paid_until': {},
+        'custom_income': {},
+        'business_levels': {},
+        'last_collect': int(time.time())
+    })
+
+    now = int(time.time())
+    last = user.get("last_collect", now)
+    hours_passed = (now - last) // 3600
+
+    if hours_passed < 1:
+        return await ctx.send("⏳ Minęła mniej niż 1 godzina od ostatniego zbioru.")
+
+    if not user.get("businesses"):
+        return await ctx.send("❌ Nie posiadasz żadnych biznesów.")
+
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except:
+        return await ctx.send("❌ Nie udało się wczytać danych biznesów.")
+
+    total_income = 0
+    rep_gain = 0
+    lines = []
+
+    for biz, amount in user['businesses'].items():
+        biz_key = biz.lower()
+        if biz_key not in businesses:
+            continue
+
+        info = businesses[biz_key]
+        is_paid = user['paid_until'].get(biz, 0) >= now
+
+        if not is_paid:
+            lines.append(f"❌ **{biz.title()}**: nieopłacony – brak dochodu")
+            continue
+
+        base_income = user.get("custom_income", {}).get(biz, info['income'])
+        hourly = base_income * amount
+        earned = hourly * hours_passed
+        total_income += earned
+
+        if info['type'] == 'legal':
+            rep_gain += 2
+
+        lines.append(f"✅ **{biz.title()}** ×{amount} → +{earned}$")
+
+    if total_income == 0:
+        return await ctx.send("⚠️ Żaden biznes nie został opłacony. Użyj `!pay <biznes> <dni>`.")
+
+    # Dodaj hajs i reputację
+    user['cash'] += total_income
+    user['reputation'] += rep_gain
+    user['reputation'] = max(min(user['reputation'], 100), -100)
+    user['last_collect'] = now
+
+    save_data(data)
+
+    embed = discord.Embed(
+        title="📦 Dochód z Biznesów",
+        description="\n".join(lines),
+        color=discord.Color.green()
+    )
+    embed.add_field(name="💰 Suma zarobków", value=f"**{total_income}$**", inline=False)
+    if rep_gain > 0:
+        embed.add_field(name="⭐ Reputacja", value=f"+{rep_gain} pkt (za legalne biznesy)", inline=False)
+
+    await ctx.send(embed=embed)
+
+
 bot.run(os.getenv('DISCORD_TOKEN'))
