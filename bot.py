@@ -737,4 +737,105 @@ async def przedmioty(ctx):
 
     await ctx.send(embed=embed)
 
+import random
+
+@bot.command(aliases=["bj"])
+async def blackjack(ctx, bet: int):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id)
+
+    if not user or user['cash'] < bet or bet <= 0:
+        return await ctx.send("❌ Nie masz wystarczającej gotówki!")
+
+    def draw_card():
+        return random.choice(["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"])
+
+    def calculate_hand(hand):
+        total = 0
+        aces = 0
+        for card in hand:
+            if card in ["J", "Q", "K"]:
+                total += 10
+            elif card == "A":
+                aces += 1
+                total += 11
+            else:
+                total += int(card)
+        while total > 21 and aces:
+            total -= 10
+            aces -= 1
+        return total
+
+    player_hand = [draw_card(), draw_card()]
+    dealer_hand = [draw_card(), draw_card()]
+
+    player_total = calculate_hand(player_hand)
+
+    msg = await ctx.send(
+        f"🃏 Twoje karty: {', '.join(player_hand)} ({player_total})\n"
+        f"🎰 Krupier: {dealer_hand[0]}, ❓\n\n"
+        f"🃏 = Dobierz kartę\n✅ = Zatrzymaj się"
+    )
+    await msg.add_reaction("🃏")
+    await msg.add_reaction("✅")
+
+    while True:
+        def check(reaction, user_check):
+            return (
+                user_check == ctx.author and str(reaction.emoji) in ["🃏", "✅"] and reaction.message.id == msg.id
+            )
+
+        try:
+            reaction, _ = await bot.wait_for("reaction_add", timeout=30.0, check=check)
+        except:
+            await ctx.send("⏱️ Czas minął!")
+            return
+
+        if reaction.emoji == "🃏":
+            player_hand.append(draw_card())
+            player_total = calculate_hand(player_hand)
+
+            await msg.edit(
+                content=f"🃏 Twoje karty: {', '.join(player_hand)} ({player_total})\n"
+                        f"🎰 Krupier: {dealer_hand[0]}, ❓\n\n"
+                        f"🃏 = Dobierz kartę\n✅ = Zatrzymaj się"
+            )
+
+            if player_total > 21:
+                user['cash'] -= bet
+                save_data(data)
+                return await ctx.send(f"💥 Przegrałeś! Twoje karty: {', '.join(player_hand)} ({player_total})")
+        elif reaction.emoji == "✅":
+            break
+
+    # Krupier dobiera do 17+
+    while calculate_hand(dealer_hand) < 17:
+        dealer_hand.append(draw_card())
+
+    dealer_total = calculate_hand(dealer_hand)
+    player_total = calculate_hand(player_hand)
+
+    result = f"🃏 Twoje karty: {', '.join(player_hand)} ({player_total})\n" \
+             f"🎰 Krupier: {', '.join(dealer_hand)} ({dealer_total})\n"
+
+    if player_total > 21:
+        user['cash'] -= bet
+        result += "💥 Przegrałeś (Bust)!"
+    elif dealer_total > 21 or player_total > dealer_total:
+        win = int(bet * 2.5 if player_total == 21 and len(player_hand) == 2 else bet * 2)
+        user['cash'] += win - bet
+        result += f"🏆 Wygrałeś! Zgarnąłeś {win}$!"
+    elif player_total == dealer_total:
+        result += "🤝 Remis! Stawka zwrócona."
+    else:
+        user['cash'] -= bet
+        result += "❌ Przegrałeś!"
+
+    save_data(data)
+    await ctx.send(result)
+    
 bot.run(os.getenv('DISCORD_TOKEN'))
