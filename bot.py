@@ -4,6 +4,7 @@ import random
 import discord
 import os
 import time
+from tasks import check_lottery
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 cooldowns = {
