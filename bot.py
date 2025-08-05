@@ -601,87 +601,60 @@ import time
 
 @bot.command()
 async def collect(ctx):
-    if ctx.channel.name != 'ekonomia':
+    if ctx.channel.name != "ekonomia":
         return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
 
     user_id = str(ctx.author.id)
     data = load_data()
-    user = data.setdefault(user_id, {
-        'cash': 0,
-        'reputation': 0,
-        'businesses': {},
-        'paid_until': {},
-        'custom_income': {},
-        'business_levels': {},
-        'last_collect': int(time.time())
-    })
+    user = data.get(user_id)
 
-    now = int(time.time())
-    last = user.get("last_collect", now)
-    hours_passed = (now - last) // 3600
+    if not user or "businesses" not in user:
+        return await ctx.send("❌ Nie masz żadnych biznesów!")
 
-    if hours_passed < 1:
-        return await ctx.send("⏳ Minęła mniej niż 1 godzina od ostatniego zbioru.")
+    current_time = time.time()
+    last = user.get("last_collect", 0)
+    hours = int((current_time - last) // 3600)
 
-    if not user.get("businesses"):
-        return await ctx.send("❌ Nie posiadasz żadnych biznesów.")
-
-    try:
-        with open("businesses.json", "r", encoding="utf-8") as f:
-            businesses = json.load(f)
-    except:
-        return await ctx.send("❌ Nie udało się wczytać danych biznesów.")
+    if hours < 1:
+        return await ctx.send("⏳ Minęła mniej niż godzina od ostatniego zbierania!")
 
     total_income = 0
-    rep_gain = 0
-    lines = []
+    rep = user.get("reputation", 0)
+    booster = 1.1 if rep >= 50 else 1
+    event = get_event_multiplier()
 
-    for biz, amount in user['businesses'].items():
-        biz_key = biz.lower()
-        if biz_key not in businesses:
+    businesses = load_businesses()
+    paid = user.get("paid_until", {})
+    levels = user.get("business_levels", {})
+
+    for biz, count in user.get("businesses", {}).items():
+        if biz not in businesses:
             continue
 
-        info = businesses[biz_key]
-        is_paid = user['paid_until'].get(biz, 0) >= now
+        biz_info = businesses[biz]
+        income = biz_info["income"]
+        biz_type = biz_info.get("type", "legal")
 
-        if not is_paid:
-            lines.append(f"❌ **{biz.title()}**: nieopłacony – brak dochodu")
+        # czy opłacony
+        if paid.get(biz, 0) < current_time:
             continue
 
-        base_income = user.get("custom_income", {}).get(biz, info['income'])
-        hourly = base_income * amount
-        earned = hourly * hours_passed
-        total_income += earned
-
-        if info['type'] == 'legal':
-            rep_gain += 2
-
-        lines.append(f"✅ **{biz.title()}** ×{amount} → +{earned}$")
+        level = levels.get(biz, 1)
+        total = income * count * level
+        if biz_type == "legal" and rep >= 50:
+            total *= booster
+        total *= hours * event
+        total_income += int(total)
 
     if total_income == 0:
-        return await ctx.send("⚠️ Żaden biznes nie został opłacony. Użyj `!pay <biznes> <dni>`.")
+        return await ctx.send("❌ Brak dochodu do zebrania – upewnij się, że biznesy są opłacone!")
 
-    # Dodaj hajs i reputację
-    user['cash'] += total_income
-    user['reputation'] += rep_gain
-    user['reputation'] = max(min(user['reputation'], 100), -100)
-    user['last_collect'] = now
-
+    user["cash"] += total_income
+    user["last_collect"] = current_time
+    data[user_id] = user
     save_data(data)
 
-    embed = discord.Embed(
-        title="📦 Dochód z Biznesów",
-        description="\n".join(lines),
-        color=discord.Color.green()
-    )
-    embed.add_field(name="💰 Suma zarobków", value=f"**{total_income}$**", inline=False)
-    if rep_gain > 0:
-        embed.add_field(name="⭐ Reputacja", value=f"+{rep_gain} pkt (za legalne biznesy)", inline=False)
-
-    await ctx.send(embed=embed)
-
-import time
-
+    await ctx.send(f"💼 Zebrano **{total_income}$** z biznesów za {hours} godzin(y)!")
 @bot.command()
 async def mojebiznesy(ctx):
     if ctx.channel.name != 'ekonomia':
