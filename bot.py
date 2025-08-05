@@ -1,6 +1,6 @@
-# Główny plik bota
 import discord
 from discord.ext import commands
+import os  # <--- brakujący import
 
 bot = commands.Bot(command_prefix='/', intents=discord.Intents.all())
 
