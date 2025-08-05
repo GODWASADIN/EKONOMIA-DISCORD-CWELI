@@ -221,66 +221,83 @@ async def withdraw(ctx, amount: str):
 import json
 
 @bot.command()
-async def buy(ctx, biznes: str):
+async def buy(ctx, nazwa: str):
     if ctx.channel.name != 'ekonomia':
         return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
 
-    biznes = biznes.lower()
+    nazwa = nazwa.lower()
 
-    # Wczytanie listy biznesów
-    try:
-        with open("businesses.json", "r", encoding="utf-8") as f:
-            businesses = json.load(f)
-    except FileNotFoundError:
-        return await ctx.send("❌ Nie znaleziono pliku businesses.json.")
-
-    if biznes not in businesses:
-        return await ctx.send("❌ Nie ma takiego biznesu.")
-
-    # Wczytanie danych gracza
+    # Wczytanie danych użytkownika
     data = load_data()
     user_id = str(ctx.author.id)
     user = data.setdefault(user_id, {
         'cash': 0,
         'bank': 0,
         'reputation': 0,
-        'businesses': {}
+        'businesses': {},
+        'items': {}
     })
     user.setdefault('businesses', {})
+    user.setdefault('items', {})
 
-    b = businesses[biznes]
-    cena = b['price']
+    # Spróbuj załadować biznesy
+    try:
+        with open("businesses.json", "r", encoding="utf-8") as f:
+            businesses = json.load(f)
+    except:
+        businesses = {}
 
-    # Kara reputacyjna (gorsze ceny)
-    if user['reputation'] <= -50:
-        cena = int(cena * 1.1)
+    # Spróbuj załadować sklep
+    try:
+        with open("shop.json", "r", encoding="utf-8") as f:
+            shop = json.load(f)
+    except:
+        shop = {}
 
-    # Sprawdzenie gotówki
-    if user['cash'] < cena:
-        return await ctx.send(f"❌ Nie masz wystarczająco gotówki. Potrzebujesz **{cena}$**.")
+    # 🏢 Kup biznes
+    if nazwa in businesses:
+        b = businesses[nazwa]
+        cena = b['price']
+        if user['reputation'] <= -50:
+            cena = int(cena * 1.1)
 
-    # Odejmuje gotówkę
-    user['cash'] -= cena
+        if user['cash'] < cena:
+            return await ctx.send(f"❌ Potrzebujesz **{cena}$**, a masz tylko **{user['cash']}$**.")
 
-    # Dodaje biznes (albo zwiększa jego ilość)
-    user['businesses'][biznes] = user['businesses'].get(biznes, 0) + 1
+        user['cash'] -= cena
+        user['businesses'][nazwa] = user['businesses'].get(nazwa, 0) + 1
 
-    # Reputacja w zależności od typu
-    if b['type'] == "illegal" or b['type'] == "booster_only":
-        user['reputation'] -= 5
-        rep_info = "-5 reputacji"
+        if b['type'] in ['illegal', 'booster_only']:
+            user['reputation'] -= 5
+            rep_info = "-5 reputacji"
+        else:
+            rep_info = "brak zmian"
+
+        user['reputation'] = max(min(user['reputation'], 100), -100)
+        save_data(data)
+
+        return await ctx.send(
+            f"✅ Kupiłeś **{nazwa.title()}** za **{cena}$**.\n📈 Reputacja: {rep_info} → teraz **{user['reputation']} pkt**."
+        )
+
+    # 🛍️ Kup przedmiot ze sklepu
+    elif nazwa in shop:
+        item = shop[nazwa]
+        cena = item['price']
+
+        if user['cash'] < cena:
+            return await ctx.send(f"❌ Przedmiot kosztuje **{cena}$**, a Ty masz **{user['cash']}$**.")
+
+        user['cash'] -= cena
+        user['items'][nazwa] = user['items'].get(nazwa, 0) + 1
+        save_data(data)
+
+        return await ctx.send(
+            f"🛍️ Kupiłeś przedmiot **{nazwa.title()}** za **{cena}$**!\nOpis: {item['description']}"
+        )
+
     else:
-        rep_info = "brak zmian"
-
-    # Ograniczenie reputacji
-    user['reputation'] = max(min(user['reputation'], 100), -100)
-
-    save_data(data)
-
-    await ctx.send(
-        f"✅ Kupiłeś **{biznes.title()}** za **{cena}$**.\n"
-        f"📈 Reputacja: {rep_info} → teraz **{user['reputation']} pkt**."
-    )
+        return await ctx.send("❌ Nie znaleziono takiego biznesu ani przedmiotu.")
 
 OWNER_ID = 987130076866949230  # ← upewnij się, że nie ma żadnego wcięcia
 
