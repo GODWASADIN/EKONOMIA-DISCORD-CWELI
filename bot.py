@@ -9,7 +9,7 @@ bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 cooldowns = {
     'work': {},
     'crime': {}
-    "slut": {}
+    'slut': {}
 }
 
 @bot.event
