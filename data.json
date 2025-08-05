@@ -1,4 +1,8 @@
 {
   "business_levels": {},
   "custom_income": {}
+  "last_collect": 0,
+  "paid_until": {},
+  "custom_income": {},
+  "business_levels": {}
 }
