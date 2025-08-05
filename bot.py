@@ -166,4 +166,55 @@ async def slut(ctx):
     )
     await ctx.send(embed=embed)
 
+@bot.command()
+async def deposit(ctx, amount: str):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
+
+    if amount.lower() == "all":
+        amount = user['cash']
+    elif amount.isdigit():
+        amount = int(amount)
+    else:
+        return await ctx.send("❌ Podaj liczbę lub użyj `all`.")
+
+    if amount <= 0 or amount > user['cash']:
+        return await ctx.send("❌ Nie masz tyle gotówki, by to wpłacić.")
+
+    user['cash'] -= amount
+    user['bank'] += amount
+    save_data(data)
+
+    await ctx.send(f"🏦 Wpłacono **{amount}$** do banku!")
+
+
+@bot.command()
+async def withdraw(ctx, amount: str):
+    if ctx.channel.name != 'ekonomia':
+        return await ctx.send("Komenda działa tylko na kanale #ekonomia!")
+
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.setdefault(user_id, {'cash': 0, 'bank': 0, 'reputation': 0})
+
+    if amount.lower() == "all":
+        amount = user['bank']
+    elif amount.isdigit():
+        amount = int(amount)
+    else:
+        return await ctx.send("❌ Podaj liczbę lub użyj `all`.")
+
+    if amount <= 0 or amount > user['bank']:
+        return await ctx.send("❌ Nie masz tyle pieniędzy w banku.")
+
+    user['bank'] -= amount
+    user['cash'] += amount
+    save_data(data)
+
+    await ctx.send(f"💸 Wypłacono **{amount}$** z banku!")
+
 bot.run(os.getenv('DISCORD_TOKEN'))
