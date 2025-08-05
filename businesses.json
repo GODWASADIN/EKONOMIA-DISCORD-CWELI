@@ -1,0 +1,50 @@
+{
+    "sklep": {
+        "price": 25000,
+        "income": 150,
+        "rep_on_collect": 2,
+        "type": "legal"
+    },
+    "restauracja": {
+        "price": 75000,
+        "income": 400,
+        "rep_on_collect": 2,
+        "type": "legal"
+    },
+    "warsztat": {
+        "price": 150000,
+        "income": 700,
+        "rep_on_collect": 2,
+        "type": "legal"
+    },
+    "firma_it": {
+        "price": 240000,
+        "income": 900,
+        "rep_on_collect": 2,
+        "type": "legal"
+    },
+    "marihuana": {
+        "price": 90000,
+        "income": 500,
+        "rep_on_collect": -5,
+        "type": "illegal"
+    },
+    "kokaina": {
+        "price": 300000,
+        "income": 1000,
+        "rep_on_collect": -5,
+        "type": "illegal"
+    },
+    "kasyno": {
+        "price": 750000,
+        "income": 2000,
+        "rep_on_collect": -5,
+        "type": "illegal"
+    },
+    "import_export": {
+        "price": 330000,
+        "income": 1000,
+        "rep_on_collect": -5,
+        "type": "booster_only"
+    }
+}
