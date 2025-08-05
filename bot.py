@@ -1154,7 +1154,7 @@ import time
 async def rob(ctx, member: discord.Member):
     if ctx.channel.name != "ekonomia":
         return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
-    
+
     if member == ctx.author:
         return await ctx.send("❌ Nie możesz okradać samego siebie!")
 
@@ -1191,27 +1191,49 @@ async def rob(ctx, member: discord.Member):
 
         user["cash"] += stolen_amount
         target["cash"] -= stolen_amount
-
-        user["rob_cd"] = now + 7200  # 2 godziny
+        user["rob_cd"] = now + 900  # 15 minut cooldown
 
         save_data(data)
-        return await ctx.send(
-            f"💰 Udało Ci się okraść {member.mention} i zdobyć **{stolen_amount}$**!\n"
-            f"⭐ Reputacja -10 (obecna: {user['reputation']})"
+
+        embed = discord.Embed(
+            title="💸 Udana kradzież!",
+            description=f"Ukradłeś **{stolen_amount}$** od {member.mention}!
+"
+                        f"📉 Reputacja: `-10` (obecnie: {user['reputation']})",
+            color=discord.Color.green()
         )
+        return await ctx.send(embed=embed)
+
     else:
-        # PORAŻKA
+        # PORAŻKA = WIĘZIENIE
         fine = random.randint(300, 900)
         user["cash"] = max(0, user["cash"] - fine)
         user["reputation"] -= 5
-        user["rob_cd"] = now + 900  # Więzienie
+        user["rob_cd"] = now + 900  # 15 minut więzienia
 
         save_data(data)
-        return await ctx.send(
-            f"🚨 Zostałeś złapany podczas próby okradzenia {member.mention}!\n"
-            f"💸 Kara: -{fine}$, ⭐ Reputacja -15 (obecna: {user['reputation']})\n"
-            f"⛓️ Trafiasz do więzienia na 2 godziny!"
+
+        embed = discord.Embed(
+            title="🚔 Zostałeś złapany!",
+            description=(
+                f"❌ Próba okradzenia {member.mention} się **nie powiodła**.
+"
+                f"💸 Grzywna: `{fine}$`
+"
+                f"📉 Reputacja: `-15 pkt` (obecnie: {user['reputation']})
+"
+                f"⛓️ Trafiasz do **więzienia na 15 minut!**"
+            ),
+            color=discord.Color.red()
         )
+        await ctx.send(embed=embed)
+
+        # Dodaj rolę więźnia jeśli istnieje
+        prison_role = discord.utils.get(ctx.guild.roles, name="🔒 Więzień")
+        if prison_role:
+            await ctx.author.add_roles(prison_role)
+            await asyncio.sleep(900)  # 15 minut
+            await ctx.author.remove_roles(prison_role)
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
