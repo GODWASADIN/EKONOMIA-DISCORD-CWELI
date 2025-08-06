@@ -1134,61 +1134,70 @@ import random
 import time
 
 @bot.command()
+@commands.cooldown(1, 7200, commands.BucketType.user)  # 2 godziny cooldownu
 async def rob(ctx, member: discord.Member):
-    if ctx.channel.name != "ekonomia":
-        return await ctx.send("❌ Komenda działa tylko na kanale #ekonomia!")
+    if member.bot:
+        return await ctx.send("❌ Nie możesz okraść bota!")
 
     if member == ctx.author:
         return await ctx.send("❌ Nie możesz okraść samego siebie!")
 
-    user = get_user_data(ctx.author.id)
-    target = get_user_data(member.id)
+    author_id = str(ctx.author.id)
+    member_id = str(member.id)
 
-    if is_in_prison(user):
-        return await ctx.send("🔒 Jesteś w więzieniu i nie możesz nic robić przez 15 minut!")
+    data = load_data()
+    user = data.get(author_id, {})
+    target = data.get(member_id, {})
 
-    if not target or target.get("cash", 0) < 100:
-        return await ctx.send("❌ Ten gracz nie ma wystarczająco gotówki!")
+    # Sprawdzenie więzienia
+    if user.get("prison", 0) > time.time():
+        return await ctx.send("❌ Jesteś w więzieniu i nie możesz teraz kraść.")
 
-    rep = user.get("reputation", 0)
-    chance = 0.6 if rep > -75 else 0.4
+    # Szansa powodzenia zależna od reputacji
+    reputation = user.get("reputation", 0)
+    if reputation <= -75:
+        chance = 40
+    else:
+        chance = 60
 
-    if random.random() < chance:
+    if "wallet" not in target or target["wallet"] <= 0:
+        return await ctx.send("❌ Ten użytkownik nie ma pieniędzy!")
+
+    success = random.randint(1, 100) <= chance
+    stolen_amount = random.randint(int(target["wallet"] * 0.1), int(target["wallet"] * 0.8))
+
+    if success:
         # Sukces
-        percent = random.uniform(0.1, 0.8)
-        stolen = int(target["cash"] * percent)
-
-        user["cash"] += stolen
-        target["cash"] -= stolen
+        user["wallet"] = user.get("wallet", 0) + stolen_amount
+        target["wallet"] = target.get("wallet", 0) - stolen_amount
         user["reputation"] = user.get("reputation", 0) - 10
-
-        update_user_data(ctx.author.id, user)
-        update_user_data(member.id, target)
 
         embed = discord.Embed(
             title="💰 Udany rabunek!",
-            description=f"Ukradłeś **{stolen}$** od {member.mention}!",
+            description=f"✅ Ukradłeś **{stolen_amount}$** od {member.mention}!",
             color=discord.Color.green()
         )
-        return await ctx.send(embed=embed)
-
+        await ctx.send(embed=embed)
     else:
-        # Porażka – więzienie
-        jail_role = discord.utils.get(ctx.guild.roles, name="🔒 Więzień")
-        if jail_role:
-            await ctx.author.add_roles(jail_role)
-
+        # Porażka → więzienie
+        fine = random.randint(300, 900)
+        user["wallet"] = max(0, user.get("wallet", 0) - fine)
         user["reputation"] = user.get("reputation", 0) - 15
-        user["prison"] = time.time() + 900  # 15 minut
-
-        update_user_data(ctx.author.id, user)
+        user["prison"] = time.time() + 900  # 15 minut więzienia
 
         embed = discord.Embed(
-    title="🚓 Aresztowanie!",
-    description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\nTrafiasz do więzienia na **15 minut**!",
-    color=discord.Color.red()
-)
-return await ctx.send(embed=embed)
+            title="🚓 Aresztowanie!",
+            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\n"
+                        f"💸 Straciłeś **{fine}$** i trafiłeś do więzienia na **15 minut**!",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+
+    # Zapisz zmiany
+    data[author_id] = user
+    data[member_id] = target
+    save_data(data)
+
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
