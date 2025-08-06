@@ -28,6 +28,11 @@ def update_reputation(user_id, amount):
     user['reputation'] = max(min(user['reputation'], 100), -100)  # ograniczenie -100 do 100
     save_data(data)
 
+def load_businesses():
+    # np.:
+    with open("data/businesses.json", "r") as f:
+        return json.load(f)
+        
 # Pobranie danych użytkownika (stan)
 def get_user_data(user_id):
     data = load_data()
