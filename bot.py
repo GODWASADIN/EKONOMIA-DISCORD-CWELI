@@ -7,6 +7,7 @@ import time
 from tasks import check_lottery
 from tasks import set_bot
 from prison_task import check_prison
+from economy import load_businesses
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 cooldowns = {
@@ -16,7 +17,12 @@ cooldowns = {
 }
 
 
+import json
 
+def load_businesses():
+    with open("businesses.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+        
 
 def get_event_multiplier():
     data = load_data()
@@ -1134,70 +1140,51 @@ import random
 import time
 
 @bot.command()
-@commands.cooldown(1, 7200, commands.BucketType.user)  # 2 godziny cooldownu
+@commands.cooldown(1, 900, commands.BucketType.user)  # 15 minut cooldown
 async def rob(ctx, member: discord.Member):
-    if member.bot:
-        return await ctx.send("❌ Nie możesz okraść bota!")
-
-    if member == ctx.author:
+    if ctx.author == member:
         return await ctx.send("❌ Nie możesz okraść samego siebie!")
 
-    author_id = str(ctx.author.id)
-    member_id = str(member.id)
+    user = get_user_data(ctx.author.id)
+    target = get_user_data(member.id)
 
-    data = load_data()
-    user = data.get(author_id, {})
-    target = data.get(member_id, {})
-
-    # Sprawdzenie więzienia
     if user.get("prison", 0) > time.time():
-        return await ctx.send("❌ Jesteś w więzieniu i nie możesz teraz kraść.")
+        return await ctx.send("❌ Jesteś w więzieniu i nie możesz kraść!")
 
-    # Szansa powodzenia zależna od reputacji
-    reputation = user.get("reputation", 0)
-    if reputation <= -75:
-        chance = 40
-    else:
-        chance = 60
+    target_cash = int(target.get("cash", 0))  # upewniamy się, że to int
 
-    if "wallet" not in target or target["wallet"] <= 0:
+    if target_cash <= 0:
         return await ctx.send("❌ Ten użytkownik nie ma pieniędzy!")
 
-    success = random.randint(1, 100) <= chance
-    stolen_amount = random.randint(int(target["wallet"] * 0.1), int(target["wallet"] * 0.8))
+    # Szansa na sukces
+    success_chance = 60
+    if user.get("reputation", 0) <= -75:
+        success_chance = 40
 
-    if success:
-        # Sukces
-        user["wallet"] = user.get("wallet", 0) + stolen_amount
-        target["wallet"] = target.get("wallet", 0) - stolen_amount
+    if random.randint(1, 100) <= success_chance:
+        stolen_amount = random.randint(int(target_cash * 0.1), int(target_cash * 0.8))
+        user["cash"] = user.get("cash", 0) + stolen_amount
+        target["cash"] = max(target_cash - stolen_amount, 0)
+
         user["reputation"] = user.get("reputation", 0) - 10
 
-        embed = discord.Embed(
-            title="💰 Udany rabunek!",
-            description=f"✅ Ukradłeś **{stolen_amount}$** od {member.mention}!",
-            color=discord.Color.green()
-        )
-        await ctx.send(embed=embed)
+        await ctx.send(f"✅ Ukradłeś **{stolen_amount}$** od {member.mention}!")
+
     else:
-        # Porażka → więzienie
-        fine = random.randint(300, 900)
-        user["wallet"] = max(0, user.get("wallet", 0) - fine)
+        penalty = random.randint(300, 900)
+        user["cash"] = max(user.get("cash", 0) - penalty, 0)
+        user["prison"] = time.time() + 900  # 15 min więzienia
         user["reputation"] = user.get("reputation", 0) - 15
-        user["prison"] = time.time() + 900  # 15 minut więzienia
 
         embed = discord.Embed(
             title="🚓 Aresztowanie!",
-            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\n"
-                        f"💸 Straciłeś **{fine}$** i trafiłeś do więzienia na **15 minut**!",
+            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\nTrafiasz do więzienia na **15 minut**!",
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
 
-    # Zapisz zmiany
-    data[author_id] = user
-    data[member_id] = target
-    save_data(data)
-
+    update_user_data(ctx.author.id, user)
+    update_user_data(member.id, target)
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
