@@ -1184,11 +1184,11 @@ async def rob(ctx, member: discord.Member):
         update_user_data(ctx.author.id, user)
 
         embed = discord.Embed(
-            title="🚔 Aresztowanie!",
-            description = f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\nTrafiasz do więzienia na **15 minut**!"
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
+    title="🚓 Aresztowanie!",
+    description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\nTrafiasz do więzienia na **15 minut**!",
+    color=discord.Color.red()
+)
+return await ctx.send(embed=embed)
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
