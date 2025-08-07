@@ -12,6 +12,21 @@ def set_bot(bot):
     bot_instance = bot
     check_lottery.start()
 
+lottery_data = {
+    "pot": 0,
+    "entries": {}
+}
+
+async def check_lottery():
+    while True:
+        now = datetime.datetime.now()
+        if now.hour == 12 and now.minute == 0:
+            await run_lottery_draw()
+            await asyncio.sleep(60)  # unika ponownego losowania w tej samej minucie
+        await asyncio.sleep(30)  # sprawdzaj co 30s
+
+
+
 @tasks.loop(minutes=1)
 async def check_lottery():
     if bot_instance is None:
