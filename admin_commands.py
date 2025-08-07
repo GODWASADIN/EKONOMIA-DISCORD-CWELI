@@ -59,7 +59,7 @@ class AdminCommands(commands.Cog):
         await ctx.send(f"✅ Odjęto {amount}$ użytkownikowi {member.mention}!")
         
          @commands.command()
-    @is_owner()
+         @is_owner()
     async def drawlottery(self, ctx):
         try:
             from lottery import run_lottery
