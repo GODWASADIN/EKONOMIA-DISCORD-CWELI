@@ -100,10 +100,10 @@ class AdminCommands(commands.Cog):
             return await ctx.send(f"❌ Użytkownik {user.mention} nie ma tyle pieniędzy w banku! (ma {current_bank:,}$)")
 
         data[user_id]["bank"] = current_bank - amount
+        await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
 
 
-        async def setup(bot):
+
+    async def setup(bot):
     await bot.add_cog(AdminCommands(bot))
         save_data(data)
-
-        await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
