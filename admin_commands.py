@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 from economy import load_data, save_data
@@ -57,10 +56,10 @@ class AdminCommands(commands.Cog):
         user["cash"] -= amount
         save_data(data)
         await ctx.send(f"✅ Odjęto {amount}$ użytkownikowi {member.mention}!")
-        
-         @commands.command()
-         @is_owner()
-         async def drawlottery(self, ctx):
+
+    @commands.command()
+    @is_owner()
+    async def drawlottery(self, ctx):
         try:
             from lottery import run_lottery
         except ImportError:
@@ -68,39 +67,39 @@ class AdminCommands(commands.Cog):
 
         await run_lottery(ctx.bot)
         await ctx.send("🎉 Loteria została ręcznie uruchomiona!")
-        
-        @bot.command()
-@commands.has_permissions(administrator=True)
-async def dodajbank(ctx, user: discord.Member, amount: int):
-    if amount <= 0:
-        return await ctx.send("❌ Podaj prawidłową kwotę!")
 
-    data = load_data()
-    user_id = str(user.id)
-    if user_id not in data:
-        data[user_id] = {"cash": 0, "bank": 0, "reputation": 0}
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def dodajbank(self, ctx, user: discord.Member, amount: int):
+        if amount <= 0:
+            return await ctx.send("❌ Podaj prawidłową kwotę!")
 
-    data[user_id]["bank"] = data[user_id].get("bank", 0) + amount
-    save_data(data)
+        data = load_data()
+        user_id = str(user.id)
+        if user_id not in data:
+            data[user_id] = {"cash": 0, "bank": 0, "reputation": 0}
 
-    await ctx.send(f"✅ Dodano {amount:,}$ do banku użytkownika {user.mention}!")
-    
-    @bot.command()
-@commands.has_permissions(administrator=True)
-async def odejmijbank(ctx, user: discord.Member, amount: int):
-    if amount <= 0:
-        return await ctx.send("❌ Podaj prawidłową kwotę!")
+        data[user_id]["bank"] = data[user_id].get("bank", 0) + amount
+        save_data(data)
 
-    data = load_data()
-    user_id = str(user.id)
-    if user_id not in data:
-        return await ctx.send("❌ Ten użytkownik nie ma żadnych danych bankowych!")
+        await ctx.send(f"✅ Dodano {amount:,}$ do banku użytkownika {user.mention}!")
 
-    current_bank = data[user_id].get("bank", 0)
-    if current_bank < amount:
-        return await ctx.send(f"❌ Użytkownik {user.mention} nie ma tyle pieniędzy w banku! (ma {current_bank:,}$)")
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def odejmijbank(self, ctx, user: discord.Member, amount: int):
+        if amount <= 0:
+            return await ctx.send("❌ Podaj prawidłową kwotę!")
 
-    data[user_id]["bank"] = current_bank - amount
-    save_data(data)
+        data = load_data()
+        user_id = str(user.id)
+        if user_id not in data:
+            return await ctx.send("❌ Ten użytkownik nie ma żadnych danych bankowych!")
 
-    await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
+        current_bank = data[user_id].get("bank", 0)
+        if current_bank < amount:
+            return await ctx.send(f"❌ Użytkownik {user.mention} nie ma tyle pieniędzy w banku! (ma {current_bank:,}$)")
+
+        data[user_id]["bank"] = current_bank - amount
+        save_data(data)
+
+        await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
