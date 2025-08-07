@@ -9,7 +9,8 @@ from tasks import set_bot
 from prison_task import check_prison
 from economy import load_businesses
 from discord.ext import commands
-from admin_commands import
+from admin_commands import *
+
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 bot.load_extension("admin_commands")
 OWNER_ID = 987130076866949230
@@ -1198,34 +1199,60 @@ async def prison(ctx, member: discord.Member = None):
         await ctx.send(f"✅ {member.display_name} jest wolny.")
 
 @bot.command()
-async def roulette(ctx, *args):
-    if len(args) == 1:
-        try:
-            bet = int(args[0])
-            choice = random.choice(["red", "black"])  # losowy kolor
-        except ValueError:
-            return await ctx.send("❌ Podaj poprawną stawkę.")
-    elif len(args) == 2:
-        choice = args[0].lower()
-        try:
-            bet = int(args[1])
-        except ValueError:
-            return await ctx.send("❌ Podaj poprawną stawkę.")
-        
-        if choice not in ["red", "black"] and not (choice.isdigit() and 0 <= int(choice) <= 36):
-            return await ctx.send("❌ Wybierz kolor (red/black) lub liczbę od 0 do 36.")
+async def roulette(ctx, arg1=None, arg2=None):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+
+    if not arg1 or not arg2:
+        return await ctx.send("❌ Wybierz kolor (red/black) lub liczbę od 0 do 36 ORAZ stawkę.")
+
+    # Rozpoznaj co jest stawką, a co zakładem
+    if arg1.isdigit():
+        amount = int(arg1)
+        choice = arg2.lower()
+    elif arg2.isdigit():
+        amount = int(arg2)
+        choice = arg1.lower()
     else:
-        return await ctx.send("❌ Poprawne użycie: `!roulette <stawka>` lub `!roulette <kolor/liczba> <stawka>`")
+        return await ctx.send("❌ Podaj poprawną stawkę jako liczbę.")
 
+    if amount <= 0:
+        return await ctx.send("❌ Podaj poprawną stawkę większą niż 0.")
 
+    data = load_data()
+    user_id = str(ctx.author.id)
+    user = data.get(user_id, {})
 
+    if user.get("cash", 0) < amount:
+        return await ctx.send("❌ Nie masz wystarczającej ilości gotówki!")
 
+    result_number = random.randint(0, 36)
+    result_color = random.choice(["red", "black"])
 
+    win = False
+    multiplier = 0
 
+    if choice in ["red", "black"]:
+        if choice == result_color:
+            win = True
+            multiplier = 2
+    elif choice.isdigit() and 0 <= int(choice) <= 36:
+        if int(choice) == result_number:
+            win = True
+            multiplier = 35
+    else:
+        return await ctx.send("❌ Wybierz kolor (red/black) lub liczbę od 0 do 36.")
 
+    if win:
+        winnings = amount * multiplier
+        user["cash"] += winnings
+        result_text = f"🎉 Wygrałeś {winnings}$! ({choice} trafione)"
+    else:
+        user["cash"] -= amount
+        result_text = f"❌ Przegrałeś {amount}$! Wylosowano {result_number} {result_color}."
 
-    await ctx.send(f"✅ Odjęto {amount} punkt(ów) reputacji użytkownikowi {member.mention}.")
-
+    save_data(data)
+    await ctx.send(result_text)
 
 
 bot.run(os.getenv('DISCORD_TOKEN'))
