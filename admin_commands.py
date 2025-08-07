@@ -60,7 +60,7 @@ class AdminCommands(commands.Cog):
         
          @commands.command()
          @is_owner()
-    async def drawlottery(self, ctx):
+         async def drawlottery(self, ctx):
         try:
             from lottery import run_lottery
         except ImportError:
