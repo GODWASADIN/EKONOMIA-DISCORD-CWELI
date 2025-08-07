@@ -23,6 +23,24 @@ cooldowns = {
 }
 
 
+from discord.ext import tasks
+from datetime import datetime, time as dtime, timedelta
+import asyncio
+import lottery  # <-- importujemy Twój nowy plik lottery.py
+
+@tasks.loop(minutes=1)
+async def daily_lottery():
+    now = datetime.now()
+    if now.hour == 12 and now.minute == 0:
+        await lottery.run_lottery(bot)
+
+@daily_lottery.before_loop
+async def before_lottery():
+    await bot.wait_until_ready()
+
+daily_lottery.start()
+
+
 import json
 
 def load_businesses():
