@@ -1255,4 +1255,37 @@ async def roulette(ctx, arg1=None, arg2=None):
     await ctx.send(result_text)
 
 
+@bot.command()
+async def role(ctx):
+    if ctx.channel.name != "ekonomia":
+        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+
+    embed = discord.Embed(
+        title="🎖️ Dostępne role do kupienia",
+        description="Kup rolę używając komendy `!buyrole <nazwa_roli>`",
+        color=discord.Color.gold()
+    )
+
+    roles = {
+        "🎨 Kolorowy Nick": (25000, "Unikalny kolor nicku"),
+        "🧪 Eksperymentator": (50000, "Dostęp do testowych funkcji bota"),
+        "💼 Biznesmen+": (100000, "+10% zysku z biznesów i `!work`"),
+        "🔐 Ochrona Osobista": (150000, "Immunitet na 1 `!rob` tygodniowo"),
+        "💎 VIP": (200000, "+20% z `!crime`, `!slut`, `!work`"),
+        "🚨 Immunitet MAX": (300000, "Pełna ochrona przed `!rob` przez 48h"),
+        "👑 Król Ekonomii": (500000, "Prestiżowa rola – tylko jedna osoba może mieć"),
+        "🧠 Mistrz Inwestycji": (750000, "+25% z `!collect` i biznesów"),
+        "💀 Elita Przestępców": (600000, "+40% z `!rob` i `!crime`"),
+        "🔥 Legendarny Gracz": (1000000, "Wszystkie bonusy +50% zarobków")
+    }
+
+    for name, (price, desc) in roles.items():
+        embed.add_field(
+            name=f"{name} – 💸 {price:,}$",
+            value=desc,
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
 bot.run(os.getenv('DISCORD_TOKEN'))
