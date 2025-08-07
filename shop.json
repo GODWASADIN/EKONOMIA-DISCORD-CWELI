@@ -10,17 +10,13 @@
     "zdrapkapremium": {
         "price": 7500,
         "description": "Losowa wygrana: 5000–10000 💰"
-    },
-    "automaty": {
-        "price": 2500000,
-        "description": "Możliwość tworzenia tymczasowych kanałów głosowych"
-    },
-    "nitrobasic": {
-        "price": 10000000,
-        "description": "Prestżowy przedmiot bez dodatkowych funkcji"
+   },
+    "💎 VIP": {
+        "price": 1000000,
+        "description": "Możliwosc przerzucanie ludzi + wchodzenia na kanały gdy jest maksymalna ilość osób"
     },
     "nitro": {
         "price": 30000000,
-        "description": "Prestżowy przedmiot bez dodatkowych funkcji"
+        "description": "dla 1 osoby która to kupi dostaje discord nitro"
     }
 }
