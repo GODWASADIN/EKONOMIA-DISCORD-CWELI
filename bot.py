@@ -9,6 +9,11 @@ from tasks import set_bot
 from prison_task import check_prison
 from economy import load_businesses
 from discord.ext import commands
+from discord.ext import tasks
+from datetime import datetime, time as dtime, timedelta
+import asyncio
+import lottery  # <-- importujemy Twój nowy plik lottery.py
+
 
 
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
@@ -22,11 +27,6 @@ cooldowns = {
     'slut': {}
 }
 
-
-from discord.ext import tasks
-from datetime import datetime, time as dtime, timedelta
-import asyncio
-import lottery  # <-- importujemy Twój nowy plik lottery.py
 
 @tasks.loop(minutes=1)
 async def daily_lottery():
