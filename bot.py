@@ -336,29 +336,6 @@ async def buy(ctx, nazwa: str):
     else:
         return await ctx.send("❌ Nie znaleziono takiego biznesu ani przedmiotu.")
 
-OWNER_ID = 987130076866949230  # ← upewnij się, że nie ma żadnego wcięcia
-
-@bot.command()
-async def dodajkase(ctx, member: discord.Member, kwota: int):
-    if ctx.author.id != OWNER_ID:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    if kwota <= 0:
-        return await ctx.send("❌ Podaj poprawną kwotę większą niż 0.")
-
-    data = load_data()
-    user = data.setdefault(str(member.id), {
-        'cash': 0,
-        'bank': 0,
-        'reputation': 0,
-        'businesses': {}
-    })
-
-    user['cash'] += kwota
-    save_data(data)
-
-    await ctx.send(f"✅ Dodano {kwota}$ użytkownikowi {member.mention}!")
-
 
 @bot.command()
 async def shop(ctx):
@@ -1268,5 +1245,84 @@ async def roulette(ctx, amount: int, choice):
 
     update_user_data(user_id, user)
     await ctx.send(embed=embed)
-    
+
+
+@bot.command()
+async def addrep(ctx, member: discord.Member, amount: int):
+    if ctx.author.id != 987130076866949230:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+
+    data = load_data()
+    user_id = str(member.id)
+
+    if user_id not in data:
+        return await ctx.send("❌ Ten użytkownik nie ma konta w systemie.")
+
+    data[user_id]["reputation"] = data[user_id].get("reputation", 0) + amount
+    update_user_data(user_id, data[user_id])
+
+    await ctx.send(f"✅ Dodano {amount} punktów reputacji dla {member.mention}.")
+
+    @bot.command()
+async def subrep(ctx, member: discord.Member, amount: int):
+    if ctx.author.id != 987130076866949230:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+
+    data = load_data()
+    user_id = str(member.id)
+
+    if user_id not in data:
+        return await ctx.send("❌ Ten użytkownik nie ma konta w systemie.")
+
+    data[user_id]["reputation"] = data[user_id].get("reputation", 0) - amount
+    update_user_data(user_id, data[user_id])
+
+    await ctx.send(f"❌ Odjęto {amount} punktów reputacji dla {member.mention}.")
+
+
+@bot.command()
+async def dodajkase(ctx, member: discord.Member, kwota: int):
+    if ctx.author.id != 987130076866949230:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+
+    if kwota <= 0:
+        return await ctx.send("❌ Podaj poprawną kwotę większą niż 0.")
+
+    data = load_data()
+    user = data.setdefault(str(member.id), {
+        'cash': 0,
+        'bank': 0,
+        'reputation': 0,
+        'businesses': {}
+    })
+
+    user['cash'] += kwota
+    save_data(data)
+
+    await ctx.send(f"✅ Dodano {kwota}$ użytkownikowi {member.mention}!")
+
+
+@bot.command()
+async def zabierzkase(ctx, member: discord.Member, kwota: int):
+    if ctx.author.id != 987130076866949230:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+
+    if kwota <= 0:
+        return await ctx.send("❌ Podaj poprawną kwotę większą niż 0.")
+
+    data = load_data()
+    user = data.setdefault(str(member.id), {
+        'cash': 0,
+        'bank': 0,
+        'reputation': 0,
+        'businesses': {}
+    })
+
+    user['cash'] = max(0, user['cash'] - kwota)
+    save_data(data)
+
+    await ctx.send(f"❌ Zabrano {kwota}$ użytkownikowi {member.mention}.")
+
+
+
 bot.run(os.getenv('DISCORD_TOKEN'))
