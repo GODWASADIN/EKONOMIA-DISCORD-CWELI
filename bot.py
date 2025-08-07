@@ -1089,14 +1089,15 @@ async def top(ctx):
         return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
 
     data = load_data()
-
     ranking = []
 
     for user_id, user_data in data.items():
-        total = user_data.get("cash", 0) + user_data.get("bank", 0)
-        reputation = user_data.get("reputation", 0)
+        cash = user_data.get("cash", 0)
+        bank = user_data.get("bank", 0)
+        rep = user_data.get("reputation", 0)
+        total = cash + bank
         if total > 0:
-            ranking.append((int(user_id), total, reputation))
+            ranking.append((int(user_id), total, cash, bank, rep))
 
     if not ranking:
         return await ctx.send("❌ Brak danych do wyświetlenia.")
@@ -1105,16 +1106,20 @@ async def top(ctx):
     top = ranking[:10]
 
     embed = discord.Embed(title="💰 TOP 10 najbogatszych graczy", color=discord.Color.green())
-    for i, (uid, total_money, rep) in enumerate(top, start=1):
+
+    for i, (uid, total_money, cash, bank, rep) in enumerate(top, start=1):
         member = ctx.guild.get_member(uid)
         name = member.display_name if member else f"<@{uid}>"
         embed.add_field(
             name=f"{i}. {name}",
-            value=f"💸 {total_money:,}$ • ⭐ {rep} pkt",
+            value=(
+                f"💸 {total_money:,}$  (💵 `{cash:,}$` / 🏦 `{bank:,}$`)  • ⭐ `{rep}` pkt"
+            ),
             inline=False
         )
 
     await ctx.send(embed=embed)
+
 
 import random
 import time
