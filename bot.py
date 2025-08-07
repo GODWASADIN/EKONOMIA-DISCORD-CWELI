@@ -10,6 +10,7 @@ from prison_task import check_prison
 from economy import load_businesses
 from discord.ext import commands
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+OWNER_ID = 987130076866949230
 
 cooldowns = {
     'work': {},
@@ -1190,103 +1191,31 @@ async def prison(ctx, member: discord.Member = None):
         await ctx.send(f"✅ {member.display_name} jest wolny.")
 
 @bot.command()
-async def roulette(ctx, amount: int, choice):
-    if ctx.channel.name != "ekonomia":
-        await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
-        return
-
-    user_id = str(ctx.author.id)
-    data = load_data()
-    user = data.get(user_id, {"cash": 0})
-    
-    if user.get("prison", 0) > time.time():
-        await ctx.send("🚔 Jesteś w więzieniu! Poczekaj aż minie kara.")
-        return
-
-    if amount <= 0:
-        await ctx.send("❌ Stawka musi być większa niż 0.")
-        return
-
-    if user["cash"] < amount:
-        await ctx.send("❌ Nie masz tyle gotówki!")
-        return
-
-    colors = {"czerwony": "🔴", "czarny": "⚫"}
-    result_number = random.randint(0, 36)
-    result_color = "czerwony" if result_number % 2 == 0 else "czarny"
-
-    win = False
-    multiplier = 0
-
-    # Typowanie koloru
-    if choice.lower() in colors:
-        if choice.lower() == result_color:
-            win = True
-            multiplier = 2
-    # Typowanie liczby
-    elif choice.isdigit():
-        if int(choice) == result_number:
-            win = True
-            multiplier = 35
+async def roulette(ctx, *args):
+    if len(args) == 1:
+        try:
+            bet = int(args[0])
+            choice = random.choice(["red", "black"])  # losowy kolor
+        except ValueError:
+            return await ctx.send("❌ Podaj poprawną stawkę.")
+    elif len(args) == 2:
+        choice = args[0].lower()
+        try:
+            bet = int(args[1])
+        except ValueError:
+            return await ctx.send("❌ Podaj poprawną stawkę.")
+        
+        if choice not in ["red", "black"] and not (choice.isdigit() and 0 <= int(choice) <= 36):
+            return await ctx.send("❌ Wybierz kolor (red/black) lub liczbę od 0 do 36.")
     else:
-        await ctx.send("❌ Podaj poprawny kolor (czerwony/czarny) lub liczbę (0–36).")
-        return
+        return await ctx.send("❌ Poprawne użycie: `!roulette <stawka>` lub `!roulette <kolor/liczba> <stawka>`")
 
-    embed = discord.Embed(title="🎰 Ruletka", color=discord.Color.dark_red())
-    embed.add_field(name="🎯 Wylosowano", value=f"**{result_number}** ({colors[result_color]})", inline=False)
-
-    if win:
-        winnings = amount * multiplier
-        user["cash"] += winnings
-        embed.add_field(name="✅ Wygrana!", value=f"Wygrałeś {winnings}$!", inline=False)
-    else:
-        user["cash"] -= amount
-        embed.add_field(name="❌ Przegrana", value=f"Straciłeś {amount}$.", inline=False)
-
-    update_user_data(user_id, user)
-    await ctx.send(embed=embed)
 
 
 @bot.command()
-async def addrep(ctx, member: discord.Member, amount: int):
-    if ctx.author.id != 987130076866949230:
+async def addrep(ctx, member: discord.Member, amount: int = 1):
+    if ctx.author.id != OWNER_ID:
         return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    data = load_data()
-    user_id = str(member.id)
-
-    if user_id not in data:
-        return await ctx.send("❌ Ten użytkownik nie ma konta w systemie.")
-
-    data[user_id]["reputation"] = data[user_id].get("reputation", 0) + amount
-    update_user_data(user_id, data[user_id])
-
-    await ctx.send(f"✅ Dodano {amount} punktów reputacji dla {member.mention}.")
-
-    @bot.command()
-async def subrep(ctx, member: discord.Member, amount: int):
-    if ctx.author.id != 987130076866949230:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    data = load_data()
-    user_id = str(member.id)
-
-    if user_id not in data:
-        return await ctx.send("❌ Ten użytkownik nie ma konta w systemie.")
-
-    data[user_id]["reputation"] = data[user_id].get("reputation", 0) - amount
-    update_user_data(user_id, data[user_id])
-
-    await ctx.send(f"❌ Odjęto {amount} punktów reputacji dla {member.mention}.")
-
-
-@bot.command()
-async def dodajkase(ctx, member: discord.Member, kwota: int):
-    if ctx.author.id != 987130076866949230:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    if kwota <= 0:
-        return await ctx.send("❌ Podaj poprawną kwotę większą niż 0.")
 
     data = load_data()
     user = data.setdefault(str(member.id), {
@@ -1296,10 +1225,10 @@ async def dodajkase(ctx, member: discord.Member, kwota: int):
         'businesses': {}
     })
 
-    user['cash'] += kwota
+    user['reputation'] += amount
     save_data(data)
 
-    await ctx.send(f"✅ Dodano {kwota}$ użytkownikowi {member.mention}!")
+    await ctx.send(f"✅ Dodano {amount} punkt(ów) reputacji użytkownikowi {member.mention}.")
 
 
 @bot.command()
@@ -1322,6 +1251,24 @@ async def zabierzkase(ctx, member: discord.Member, kwota: int):
     save_data(data)
 
     await ctx.send(f"❌ Zabrano {kwota}$ użytkownikowi {member.mention}.")
+
+@bot.command()
+async def subrep(ctx, member: discord.Member, amount: int = 1):
+    if ctx.author.id != OWNER_ID:
+        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
+
+    data = load_data()
+    user = data.setdefault(str(member.id), {
+        'cash': 0,
+        'bank': 0,
+        'reputation': 0,
+        'businesses': {}
+    })
+
+    user['reputation'] -= amount
+    save_data(data)
+
+    await ctx.send(f"✅ Odjęto {amount} punkt(ów) reputacji użytkownikowi {member.mention}.")
 
 
 
