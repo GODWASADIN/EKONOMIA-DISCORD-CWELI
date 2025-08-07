@@ -36,7 +36,6 @@ class AdminCommands(commands.Cog):
     async def addcash(self, ctx, member: discord.Member, amount: int):
         if amount <= 0:
             return await ctx.send("❌ Podaj kwotę większą niż 0.")
-
         data = load_data()
         user = data.setdefault(str(member.id), {"cash": 0, "bank": 0, "reputation": 0})
         user["cash"] += amount
@@ -48,7 +47,6 @@ class AdminCommands(commands.Cog):
     async def removecash(self, ctx, member: discord.Member, amount: int):
         if amount <= 0:
             return await ctx.send("❌ Podaj kwotę większą niż 0.")
-
         data = load_data()
         user = data.setdefault(str(member.id), {"cash": 0, "bank": 0, "reputation": 0})
         if user["cash"] < amount:
@@ -64,7 +62,6 @@ class AdminCommands(commands.Cog):
             from lottery import run_lottery
         except ImportError:
             return await ctx.send("❌ Nie znaleziono modułu `lottery.py` z funkcją `run_lottery(bot)`.")
-
         await run_lottery(ctx.bot)
         await ctx.send("🎉 Loteria została ręcznie uruchomiona!")
 
@@ -73,15 +70,12 @@ class AdminCommands(commands.Cog):
     async def dodajbank(self, ctx, user: discord.Member, amount: int):
         if amount <= 0:
             return await ctx.send("❌ Podaj prawidłową kwotę!")
-
         data = load_data()
         user_id = str(user.id)
         if user_id not in data:
             data[user_id] = {"cash": 0, "bank": 0, "reputation": 0}
-
         data[user_id]["bank"] = data[user_id].get("bank", 0) + amount
         save_data(data)
-
         await ctx.send(f"✅ Dodano {amount:,}$ do banku użytkownika {user.mention}!")
 
     @commands.command()
@@ -89,39 +83,29 @@ class AdminCommands(commands.Cog):
     async def odejmijbank(self, ctx, user: discord.Member, amount: int):
         if amount <= 0:
             return await ctx.send("❌ Podaj prawidłową kwotę!")
-
         data = load_data()
         user_id = str(user.id)
         if user_id not in data:
             return await ctx.send("❌ Ten użytkownik nie ma żadnych danych bankowych!")
-
         current_bank = data[user_id].get("bank", 0)
         if current_bank < amount:
             return await ctx.send(f"❌ Użytkownik {user.mention} nie ma tyle pieniędzy w banku! (ma {current_bank:,}$)")
-
         data[user_id]["bank"] = current_bank - amount
         save_data(data)
         await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
 
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def clear(self, ctx, amount: int = None):
+        """Czyści cały kanał lub określoną liczbę wiadomości."""
+        if amount is None:
+            await ctx.channel.purge()
+            await ctx.send("✅ Wyczyściłem cały kanał!", delete_after=3)
+        else:
+            await ctx.channel.purge(limit=amount + 1)
+            await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
 
-
-@commands.command()
-@commands.has_permissions(administrator=True)
-async def clear(self, ctx, amount: int = None):
-    """Czyści cały kanał lub określoną liczbę wiadomości."""
-    if amount is None:
-        # Usuwa wszystkie wiadomości w kanale
-        await ctx.channel.purge()
-        await ctx.send("✅ Wyczyściłem cały kanał!", delete_after=3)
-    else:
-        # Usuwa określoną liczbę wiadomości (razem z komendą)
-        await ctx.channel.purge(limit=amount + 1)
-        await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
-
-
-
-# KONIEC KLASY!
-
+# WAŻNE! Funkcja setup jest POZA klasą!
 async def setup(bot):
-    print("AdminCommands loaded!")  # Możesz usunąć ten print po testach
+    print("AdminCommands loaded!")  # sprawdź czy pojawia się to w konsoli
     await bot.add_cog(AdminCommands(bot))
