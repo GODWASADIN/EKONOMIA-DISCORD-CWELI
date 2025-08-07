@@ -1213,61 +1213,10 @@ async def roulette(ctx, *args):
 
 
 
-@bot.command()
-async def addrep(ctx, member: discord.Member, amount: int = 1):
-    if ctx.author.id != OWNER_ID:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    data = load_data()
-    user = data.setdefault(str(member.id), {
-        'cash': 0,
-        'bank': 0,
-        'reputation': 0,
-        'businesses': {}
-    })
-
-    user['reputation'] += amount
-    save_data(data)
-
-    await ctx.send(f"✅ Dodano {amount} punkt(ów) reputacji użytkownikowi {member.mention}.")
 
 
-@bot.command()
-async def zabierzkase(ctx, member: discord.Member, kwota: int):
-    if ctx.author.id != 987130076866949230:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
 
-    if kwota <= 0:
-        return await ctx.send("❌ Podaj poprawną kwotę większą niż 0.")
 
-    data = load_data()
-    user = data.setdefault(str(member.id), {
-        'cash': 0,
-        'bank': 0,
-        'reputation': 0,
-        'businesses': {}
-    })
-
-    user['cash'] = max(0, user['cash'] - kwota)
-    save_data(data)
-
-    await ctx.send(f"❌ Zabrano {kwota}$ użytkownikowi {member.mention}.")
-
-@bot.command()
-async def subrep(ctx, member: discord.Member, amount: int = 1):
-    if ctx.author.id != OWNER_ID:
-        return await ctx.send("❌ Tylko właściciel bota może używać tej komendy.")
-
-    data = load_data()
-    user = data.setdefault(str(member.id), {
-        'cash': 0,
-        'bank': 0,
-        'reputation': 0,
-        'businesses': {}
-    })
-
-    user['reputation'] -= amount
-    save_data(data)
 
     await ctx.send(f"✅ Odjęto {amount} punkt(ów) reputacji użytkownikowi {member.mention}.")
 
