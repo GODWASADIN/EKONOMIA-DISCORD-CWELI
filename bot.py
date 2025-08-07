@@ -12,7 +12,7 @@ from discord.ext import commands
 
 
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
-bot.load_extension("admin_commands")
+
 
 OWNER_ID = 987130076866949230
 
@@ -1289,4 +1289,10 @@ async def role(ctx):
 
     await ctx.send(embed=embed)
 
-bot.run(os.getenv('DISCORD_TOKEN'))
+import asyncio
+
+async def main():
+    await bot.load_extension("admin_commands")
+    await bot.start(os.getenv('DISCORD_TOKEN'))
+
+asyncio.run(main())
