@@ -13,6 +13,7 @@ from admin_commands import *
 
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 bot.load_extension("admin_commands")
+bot.add_cog(AdminCommands(bot))
 OWNER_ID = 987130076866949230
 
 cooldowns = {
