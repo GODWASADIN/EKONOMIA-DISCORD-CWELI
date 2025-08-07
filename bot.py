@@ -27,6 +27,13 @@ cooldowns = {
     'slut': {}
 }
 
+@bot.event
+async def on_ready():
+    set_bot(bot)
+    if not daily_lottery.is_running():
+        daily_lottery.start()
+    print(f"✅ Zalogowano jako {bot.user}")
+
 
 @tasks.loop(minutes=1)
 async def daily_lottery():
