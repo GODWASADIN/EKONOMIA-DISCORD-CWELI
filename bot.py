@@ -341,7 +341,7 @@ async def buy(ctx, nazwa: str):
             f"✅ Kupiłeś **{nazwa.title()}** za **{cena}$**.\n📈 Reputacja: {rep_info} → teraz **{user['reputation']} pkt**."
         )
 
-    # 🛍️ Kup przedmiot ze sklepu
+    # 🛍️ Kup przedmiot lub rolę VIP ze sklepu
     elif nazwa in shop:
         item = shop[nazwa]
         cena = item['price']
@@ -349,6 +349,19 @@ async def buy(ctx, nazwa: str):
         if user['cash'] < cena:
             return await ctx.send(f"❌ Przedmiot kosztuje **{cena}$**, a Ty masz **{user['cash']}$**.")
 
+        # Specjalne traktowanie dla VIP
+        if nazwa == "vip":
+            role = discord.utils.get(ctx.guild.roles, name="VIP")
+            if not role:
+                return await ctx.send("❌ Rola VIP nie istnieje na serwerze. Zgłoś to administratorowi.")
+            if role in ctx.author.roles:
+                return await ctx.send("❌ Masz już rolę VIP!")
+            user['cash'] -= cena
+            save_data(data)
+            await ctx.author.add_roles(role)
+            return await ctx.send("💎 Kupiłeś rolę **VIP**! Witamy w elitarnym klubie!")
+
+        # Dla zwykłych przedmiotów
         user['cash'] -= cena
         user['items'][nazwa] = user['items'].get(nazwa, 0) + 1
         save_data(data)
