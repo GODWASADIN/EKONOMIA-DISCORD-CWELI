@@ -1287,16 +1287,7 @@ async def role(ctx):
     )
 
     roles = {
-        "🎨 Kolorowy Nick": (25000, "Unikalny kolor nicku"),
-        "🧪 Eksperymentator": (50000, "Dostęp do testowych funkcji bota"),
-        "💼 Biznesmen+": (100000, "+10% zysku z biznesów i `!work`"),
-        "🔐 Ochrona Osobista": (150000, "Immunitet na 1 `!rob` tygodniowo"),
-        "💎 VIP": (200000, "+20% z `!crime`, `!slut`, `!work`"),
-        "🚨 Immunitet MAX": (300000, "Pełna ochrona przed `!rob` przez 48h"),
-        "👑 Król Ekonomii": (500000, "Prestiżowa rola – tylko jedna osoba może mieć"),
-        "🧠 Mistrz Inwestycji": (750000, "+25% z `!collect` i biznesów"),
-        "💀 Elita Przestępców": (600000, "+40% z `!rob` i `!crime`"),
-        "🔥 Legendarny Gracz": (1000000, "Wszystkie bonusy +50% zarobków")
+        "💎 VIP": (1000000, "Możliwość przerzucanie ludzi i wchodzenia na kanały gdy jest max osób"),
     }
 
     for name, (price, desc) in roles.items():
