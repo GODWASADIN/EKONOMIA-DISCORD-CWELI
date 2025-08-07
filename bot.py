@@ -1160,7 +1160,7 @@ import random
 import time
 
 @bot.command()
-@commands.cooldown(1, 900, commands.BucketType.user)  # 15 minut cooldown
+@commands.cooldown(1, 900, commands.BucketType.user)  # 15 min cooldown
 async def rob(ctx, member: discord.Member):
     if ctx.author == member:
         return await ctx.send("❌ Nie możesz okraść samego siebie!")
@@ -1168,10 +1168,7 @@ async def rob(ctx, member: discord.Member):
     user = get_user_data(ctx.author.id)
     target = get_user_data(member.id)
 
-    if user.get("prison", 0) > time.time():
-        return await ctx.send("❌ Jesteś w więzieniu i nie możesz kraść!")
-
-    target_cash = int(target.get("cash", 0))  # upewniamy się, że to int
+    target_cash = int(target.get("cash", 0))
 
     if target_cash <= 0:
         return await ctx.send("❌ Ten użytkownik nie ma pieniędzy!")
@@ -1185,26 +1182,25 @@ async def rob(ctx, member: discord.Member):
         stolen_amount = random.randint(int(target_cash * 0.1), int(target_cash * 0.8))
         user["cash"] = user.get("cash", 0) + stolen_amount
         target["cash"] = max(target_cash - stolen_amount, 0)
-
         user["reputation"] = user.get("reputation", 0) - 10
 
         await ctx.send(f"✅ Ukradłeś **{stolen_amount}$** od {member.mention}!")
-
     else:
         penalty = random.randint(300, 900)
         user["cash"] = max(user.get("cash", 0) - penalty, 0)
-        user["prison"] = time.time() + 900  # 15 min więzienia
         user["reputation"] = user.get("reputation", 0) - 15
 
         embed = discord.Embed(
-            title="🚓 Aresztowanie!",
-            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\n",
+            title="🚓 Nieudana próba!",
+            description=f"❌ Próba okradzenia {member.mention} się **nie powiodła**!\n"
+                        f"Straciłeś {penalty}$.",
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
 
     update_user_data(ctx.author.id, user)
     update_user_data(member.id, target)
+
 
 @bot.command()
 async def prison(ctx, member: discord.Member = None):
