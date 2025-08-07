@@ -41,12 +41,6 @@ async def daily_lottery():
     if now.hour == 12 and now.minute == 0:
         await lottery.run_lottery(bot)
 
-@daily_lottery.before_loop
-async def before_lottery():
-    await bot.wait_until_ready()
-
-daily_lottery.start()
-
 
 import json
 
