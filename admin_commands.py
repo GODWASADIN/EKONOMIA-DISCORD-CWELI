@@ -103,6 +103,23 @@ class AdminCommands(commands.Cog):
         save_data(data)
         await ctx.send(f"✅ Odjęto {amount:,}$ z banku użytkownika {user.mention}!")
 
+
+
+@commands.command()
+@commands.has_permissions(administrator=True)
+async def clear(self, ctx, amount: int = None):
+    """Czyści cały kanał lub określoną liczbę wiadomości."""
+    if amount is None:
+        # Usuwa wszystkie wiadomości w kanale
+        await ctx.channel.purge()
+        await ctx.send("✅ Wyczyściłem cały kanał!", delete_after=3)
+    else:
+        # Usuwa określoną liczbę wiadomości (razem z komendą)
+        await ctx.channel.purge(limit=amount + 1)
+        await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
+
+
+
 # KONIEC KLASY!
 
 async def setup(bot):
