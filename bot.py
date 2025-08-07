@@ -8,6 +8,7 @@ from tasks import check_lottery
 from tasks import set_bot
 from prison_task import check_prison
 from economy import load_businesses
+from discord.ext import commands
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 cooldowns = {
@@ -1210,5 +1211,62 @@ async def prison(ctx, member: discord.Member = None):
         await ctx.send(f"⛓️ {member.display_name} siedzi w więzieniu jeszcze przez **{minutes}m {seconds}s**.")
     else:
         await ctx.send(f"✅ {member.display_name} jest wolny.")
-        
+
+@bot.command()
+async def roulette(ctx, amount: int, choice):
+    if ctx.channel.name != "ekonomia":
+        await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
+        return
+
+    user_id = str(ctx.author.id)
+    data = load_data()
+    user = data.get(user_id, {"cash": 0})
+    
+    if user.get("prison", 0) > time.time():
+        await ctx.send("🚔 Jesteś w więzieniu! Poczekaj aż minie kara.")
+        return
+
+    if amount <= 0:
+        await ctx.send("❌ Stawka musi być większa niż 0.")
+        return
+
+    if user["cash"] < amount:
+        await ctx.send("❌ Nie masz tyle gotówki!")
+        return
+
+    colors = {"czerwony": "🔴", "czarny": "⚫"}
+    result_number = random.randint(0, 36)
+    result_color = "czerwony" if result_number % 2 == 0 else "czarny"
+
+    win = False
+    multiplier = 0
+
+    # Typowanie koloru
+    if choice.lower() in colors:
+        if choice.lower() == result_color:
+            win = True
+            multiplier = 2
+    # Typowanie liczby
+    elif choice.isdigit():
+        if int(choice) == result_number:
+            win = True
+            multiplier = 35
+    else:
+        await ctx.send("❌ Podaj poprawny kolor (czerwony/czarny) lub liczbę (0–36).")
+        return
+
+    embed = discord.Embed(title="🎰 Ruletka", color=discord.Color.dark_red())
+    embed.add_field(name="🎯 Wylosowano", value=f"**{result_number}** ({colors[result_color]})", inline=False)
+
+    if win:
+        winnings = amount * multiplier
+        user["cash"] += winnings
+        embed.add_field(name="✅ Wygrana!", value=f"Wygrałeś {winnings}$!", inline=False)
+    else:
+        user["cash"] -= amount
+        embed.add_field(name="❌ Przegrana", value=f"Straciłeś {amount}$.", inline=False)
+
+    update_user_data(user_id, user)
+    await ctx.send(embed=embed)
+    
 bot.run(os.getenv('DISCORD_TOKEN'))
