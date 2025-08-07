@@ -4,7 +4,7 @@ import discord
 from discord.ext import tasks
 
 LOTTERY_FILE = "lottery.json"
-LOTTERY_CHANNEL_ID = 123456789012345678  # <- wpisz tutaj ID kanału do ogłaszania zwycięzcy
+LOTTERY_CHANNEL_ID = 1402363828666368131  # <- wpisz tutaj ID kanału do ogłaszania zwycięzcy
 
 def add_lottery_entry(user_id):
     try:
