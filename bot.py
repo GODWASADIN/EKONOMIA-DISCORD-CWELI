@@ -1274,31 +1274,6 @@ async def roulette(ctx, arg1=None, arg2=None):
     save_data(data)
     await ctx.send(result_text)
 
-
-@bot.command()
-async def role(ctx):
-    if ctx.channel.name != "ekonomia":
-        return await ctx.send("❌ Komenda dostępna tylko na kanale #ekonomia!")
-
-    embed = discord.Embed(
-        title="🎖️ Dostępne role do kupienia",
-        description="Kup rolę używając komendy `!buyrole <nazwa_roli>`",
-        color=discord.Color.gold()
-    )
-
-    roles = {
-        "💎 VIP": (1000000, "Możliwość przerzucanie ludzi i wchodzenia na kanały gdy jest max osób"),
-    }
-
-    for name, (price, desc) in roles.items():
-        embed.add_field(
-            name=f"{name} – 💸 {price:,}$",
-            value=desc,
-            inline=False
-        )
-
-    await ctx.send(embed=embed)
-
 import asyncio
 
 async def main():
